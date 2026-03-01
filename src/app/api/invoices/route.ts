@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { nanoid } from 'nanoid';
 import { getCurrentUser } from '@/lib/auth';
+import { supabase } from '@/lib/db';
 
 // GET /api/invoices - Get all invoices
 export async function GET(request: NextRequest) {
@@ -27,21 +28,19 @@ export async function GET(request: NextRequest) {
     });
     
     // Sort by createdAt desc
-    invoices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    invoices.sort((a, b) => {
+      const aDate = a.createdAt ? new Date(a.createdAt as string).getTime() : 0;
+      const bDate = b.createdAt ? new Date(b.createdAt as string).getTime() : 0;
+      return bDate - aDate;
+    });
 
     // Get items for each invoice
     const invoicesWithItems = await Promise.all(
       invoices.map(async (invoice) => {
-        const { data: items } = await db.invoice.create({ 
-          data: {} 
-        }).catch(() => ({ data: null }));
-        
-        // Fetch items using supabase directly
-        const { supabase } = await import('@/lib/db');
         const { data: invoiceItems } = await supabase
           .from('invoice_items')
           .select('*')
-          .eq('invoiceId', invoice.id);
+          .eq('invoiceId', invoice.id as string);
         
         return {
           ...invoice,
@@ -117,7 +116,7 @@ export async function POST(request: NextRequest) {
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         total: item.quantity * item.unitPrice,
-        invoiceId: invoice.id,
+        invoiceId: invoice.id as string,
       })),
     });
 

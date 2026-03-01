@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const customers = await db.customer.findMany({ where });
 
     // Get counts for each customer
-    const customersWithCounts = await Promise.all(
+    const customersWithCounts: Array<typeof customers[0] & { _count: { jobs: number; invoices: number } }> = await Promise.all(
       customers.map(async (customer) => {
         const jobsCount = await db.job.count({ where: { customerId: customer.id } });
         const invoicesCount = await db.invoice.count({ where: { customerId: customer.id } });
@@ -47,7 +47,11 @@ export async function GET(request: NextRequest) {
       : customersWithCounts;
 
     // Sort by createdAt desc
-    filteredCustomers.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    filteredCustomers.sort((a, b) => {
+      const aDate = a.createdAt ? new Date(a.createdAt as string).getTime() : 0;
+      const bDate = b.createdAt ? new Date(b.createdAt as string).getTime() : 0;
+      return bDate - aDate;
+    });
 
     return NextResponse.json({ customers: filteredCustomers });
   } catch (error) {

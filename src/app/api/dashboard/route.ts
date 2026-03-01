@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
-import { supabase } from '@/lib/db';
 
 // GET /api/dashboard - Get dashboard stats
 export async function GET(request: NextRequest) {
@@ -33,13 +32,13 @@ export async function GET(request: NextRequest) {
     // Calculate job stats
     const todaysJobs = allJobs.filter(job => {
       if (!job.scheduledAt) return false;
-      const scheduledDate = new Date(job.scheduledAt);
+      const scheduledDate = new Date(job.scheduledAt as string);
       return scheduledDate >= today && scheduledDate < tomorrow;
     }).length;
     
     const completedJobsToday = allJobs.filter(job => {
       if (job.status !== 'COMPLETED' || !job.completedAt) return false;
-      const completedDate = new Date(job.completedAt);
+      const completedDate = new Date(job.completedAt as string);
       return completedDate >= today && completedDate < tomorrow;
     }).length;
     
@@ -55,24 +54,32 @@ export async function GET(request: NextRequest) {
     });
     
     // Sort by createdAt desc
-    recentJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    recentJobs.sort((a, b) => {
+      const aDate = a.createdAt ? new Date(a.createdAt as string).getTime() : 0;
+      const bDate = b.createdAt ? new Date(b.createdAt as string).getTime() : 0;
+      return bDate - aDate;
+    });
     
     // Get upcoming job
     const now = new Date();
     const scheduledJobs = allJobs.filter(job => 
-      job.status === 'SCHEDULED' && job.scheduledAt && new Date(job.scheduledAt) >= now
+      job.status === 'SCHEDULED' && job.scheduledAt && new Date(job.scheduledAt as string) >= now
     );
     
-    let upcomingJob = null;
+    let upcomingJob: Record<string, unknown> | null = null;
     if (scheduledJobs.length > 0) {
       // Sort by scheduledAt asc
-      scheduledJobs.sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime());
-      upcomingJob = scheduledJobs[0];
+      scheduledJobs.sort((a, b) => {
+        const aDate = new Date(a.scheduledAt as string).getTime();
+        const bDate = new Date(b.scheduledAt as string).getTime();
+        return aDate - bDate;
+      });
+      upcomingJob = scheduledJobs[0] as Record<string, unknown>;
       
       // Get customer for upcoming job
       if (upcomingJob) {
-        const customer = await db.customer.findUnique({ where: { id: upcomingJob.customerId } });
-        upcomingJob = { ...upcomingJob, customer };
+        const customer = await db.customer.findUnique({ where: { id: upcomingJob.customerId as string } });
+        upcomingJob.customer = customer;
       }
     }
 

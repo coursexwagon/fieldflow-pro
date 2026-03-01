@@ -21,7 +21,6 @@ export async function POST(
     // Get invoice
     const invoice = await db.invoice.findFirst({
       where: { id, userId: user.id },
-      include: { customer: true },
     });
 
     if (!invoice) {
@@ -29,7 +28,7 @@ export async function POST(
     }
 
     // Get customer
-    const customer = await db.customer.findUnique({ where: { id: invoice.customerId } });
+    const customer = await db.customer.findUnique({ where: { id: invoice.customerId as string } });
     if (!customer || !customer.email) {
       return NextResponse.json({ 
         error: 'Customer has no email address' 
@@ -46,7 +45,7 @@ export async function POST(
     const result = await sendInvoiceEmail(
       customer.email,
       customer.name,
-      invoice.invoiceNumber,
+      invoice.invoiceNumber as string,
       invoice.total,
       user.businessName || user.name,
       (items || []).map((item: { description: string; quantity: number; unitPrice: number; total: number }) => ({

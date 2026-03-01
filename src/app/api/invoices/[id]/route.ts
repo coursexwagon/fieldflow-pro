@@ -35,12 +35,12 @@ export async function GET(
     // Get job if exists
     let job = null;
     if (invoice.jobId) {
-      job = await db.job.findUnique({ where: { id: invoice.jobId } });
+      job = await db.job.findUnique({ where: { id: invoice.jobId as string } });
       if (job) {
         const { data: photos } = await supabase
           .from('photos')
           .select('*')
-          .eq('jobId', job.id);
+          .eq('jobId', job.id as string);
         job = { ...job, photos: photos || [] };
       }
     }
@@ -124,7 +124,7 @@ export async function PUT(
     });
 
     // Get customer and items
-    const customer = await db.customer.findUnique({ where: { id: invoice.customerId } });
+    const customer = await db.customer.findUnique({ where: { id: invoice.customerId as string } });
     const { data: invoiceItems } = await supabase
       .from('invoice_items')
       .select('*')
