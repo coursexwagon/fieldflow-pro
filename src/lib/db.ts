@@ -266,14 +266,16 @@ export const db = {
       if (error && error.code !== 'PGRST116') throw error;
       if (!data) return null;
       
-      const job = transformDates(data);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dataAny = data as any;
+      const job = transformDates(dataAny);
       const result: AnyRecord = { ...job };
       
-      if (include?.customer && data.customers) {
-        result.customer = transformDates(data.customers);
+      if (include?.customer && dataAny.customers) {
+        result.customer = transformDates(dataAny.customers);
       }
-      if (include?.photos && data.photos && Array.isArray(data.photos)) {
-        result.photos = data.photos.map(transformDates);
+      if (include?.photos && dataAny.photos && Array.isArray(dataAny.photos)) {
+        result.photos = dataAny.photos.map(transformDates);
       }
       return result;
     },
@@ -292,9 +294,11 @@ export const db = {
       if (error && error.code !== 'PGRST116') throw error;
       if (!data) return null;
       
-      const job = transformDates(data);
-      if (include?.customer && data.customers) {
-        return { ...job, customer: transformDates(data.customers) };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dataAny = data as any;
+      const job = transformDates(dataAny);
+      if (include?.customer && dataAny.customers) {
+        return { ...job, customer: transformDates(dataAny.customers) };
       }
       return job;
     },
@@ -319,10 +323,12 @@ export const db = {
       if (take && !skip) query = query.limit(take);
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map((item: AnyRecord) => {
-        const job = transformDates(item);
-        if (include?.customer && item.customers) {
-          return { ...job, customer: transformDates(item.customers) };
+      return (data || []).map((item) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const itemAny = item as any;
+        const job = transformDates(itemAny);
+        if (include?.customer && itemAny.customers) {
+          return { ...job, customer: transformDates(itemAny.customers) };
         }
         return job;
       });
@@ -462,14 +468,16 @@ export const db = {
       if (error && error.code !== 'PGRST116') throw error;
       if (!data) return null;
       
-      const invoice = transformDates(data);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dataAny = data as any;
+      const invoice = transformDates(dataAny);
       const result: AnyRecord = { ...invoice };
       
-      if (include?.customer && data.customers) {
-        result.customer = transformDates(data.customers);
+      if (include?.customer && dataAny.customers) {
+        result.customer = transformDates(dataAny.customers);
       }
-      if (include?.items && data.invoice_items && Array.isArray(data.invoice_items)) {
-        result.items = data.invoice_items.map(transformDates);
+      if (include?.items && dataAny.invoice_items && Array.isArray(dataAny.invoice_items)) {
+        result.items = dataAny.invoice_items.map(transformDates);
       }
       return result;
     },
@@ -488,9 +496,11 @@ export const db = {
       if (error && error.code !== 'PGRST116') throw error;
       if (!data) return null;
       
-      const invoice = transformDates(data);
-      if (include?.customer && data.customers) {
-        return { ...invoice, customer: transformDates(data.customers) };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dataAny = data as any;
+      const invoice = transformDates(dataAny);
+      if (include?.customer && dataAny.customers) {
+        return { ...invoice, customer: transformDates(dataAny.customers) };
       }
       return invoice;
     },
@@ -511,10 +521,12 @@ export const db = {
       if (take && !skip) query = query.limit(take);
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map((item: AnyRecord) => {
-        const invoice = transformDates(item);
-        if (include?.customer && item.customers) {
-          return { ...invoice, customer: transformDates(item.customers) };
+      return (data || []).map((item) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const itemAny = item as any;
+        const invoice = transformDates(itemAny);
+        if (include?.customer && itemAny.customers) {
+          return { ...invoice, customer: transformDates(itemAny.customers) };
         }
         return invoice;
       });
