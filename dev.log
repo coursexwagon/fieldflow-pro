@@ -14,3 +14,4 @@ https://nextjs.org/telemetry
 ✓ Ready in 772ms
  GET / 200 in 2.4s (compile: 2.2s, render: 204ms)
  POST /api/auth/signup 200 in 2.3s (compile: 441ms, render: 1827ms)
+ GET /api/debug-signup 200 in 935ms (compile: 146ms, render: 789ms)
