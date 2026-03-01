@@ -2,34 +2,33 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Sparkles, Wrench, Clock, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import Image from 'next/image';
 
 interface TutorialStep {
   title: string;
   description: string;
-  image: string;
+  icon: React.ReactNode;
   features?: string[];
 }
 
 const tutorialSteps: TutorialStep[] = [
   {
-    title: 'Welcome to FieldFlow Pro',
+    title: 'Welcome to FieldFlow',
     description: 'Your complete command center for field service management. Let us show you around.',
-    image: '/images/assets/tutorial-1.png',
+    icon: <Wrench className="w-12 h-12 text-[#fbbf24]" />,
     features: ['Schedule jobs effortlessly', 'Track everything in real-time', 'Get paid faster'],
   },
   {
     title: 'Manage Jobs Like a Pro',
     description: 'Create, assign, and track jobs from your phone. GPS routing gets you there faster.',
-    image: '/images/assets/tutorial-2.png',
+    icon: <Clock className="w-12 h-12 text-[#fbbf24]" />,
     features: ['One-tap job creation', 'GPS route optimization', 'Photo documentation'],
   },
   {
     title: 'Invoice & Get Paid Instantly',
     description: 'Send professional invoices in seconds. Accept payments on the spot.',
-    image: '/images/assets/tutorial-3.png',
+    icon: <DollarSign className="w-12 h-12 text-[#fbbf24]" />,
     features: ['Auto-fill from job data', 'Accept card payments', 'Track payment status'],
   },
 ];
@@ -79,7 +78,7 @@ export function TutorialOverlay({ isOpen, onClose, onComplete }: TutorialOverlay
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-2xl mx-4 bg-gradient-to-br from-[#141416] to-[#0A0A0B] rounded-3xl border border-[#27272A] overflow-hidden shadow-2xl"
+          className="relative w-full max-w-lg mx-4 bg-[#141414] rounded-lg border border-[#333] overflow-hidden"
         >
           {/* Close Button */}
           <button
@@ -92,15 +91,15 @@ export function TutorialOverlay({ isOpen, onClose, onComplete }: TutorialOverlay
           {/* Content */}
           <div className="p-8">
             {/* Progress Dots */}
-            <div className="flex items-center justify-center gap-2 mb-6">
+            <div className="flex items-center justify-center gap-2 mb-8">
               {tutorialSteps.map((_, index) => (
                 <motion.button
                   key={index}
                   onClick={() => setCurrentStep(index)}
                   className={`w-2 h-2 rounded-full transition-all ${
                     index === currentStep
-                      ? 'w-8 bg-orange-500'
-                      : 'bg-zinc-600 hover:bg-zinc-500'
+                      ? 'w-8 bg-[#fbbf24]'
+                      : 'bg-[#444] hover:bg-[#555]'
                   }`}
                   whileHover={{ scale: 1.2 }}
                   whileTap={{ scale: 0.9 }}
@@ -118,14 +117,9 @@ export function TutorialOverlay({ isOpen, onClose, onComplete }: TutorialOverlay
                 transition={{ duration: 0.3 }}
                 className="flex flex-col items-center text-center"
               >
-                {/* Image */}
-                <div className="relative w-48 h-48 mb-6">
-                  <Image
-                    src={step.image}
-                    alt={step.title}
-                    fill
-                    className="object-contain"
-                  />
+                {/* Icon */}
+                <div className="w-24 h-24 bg-[#1a1a1a] border border-[#333] flex items-center justify-center mb-6 rounded-lg">
+                  {step.icon}
                 </div>
 
                 {/* Title */}
@@ -135,7 +129,7 @@ export function TutorialOverlay({ isOpen, onClose, onComplete }: TutorialOverlay
                   transition={{ delay: 0.1 }}
                 >
                   <h2 className="text-2xl font-bold text-white mb-3">{step.title}</h2>
-                  <p className="text-zinc-400 mb-6 max-w-md">{step.description}</p>
+                  <p className="text-[#888] mb-6 max-w-sm">{step.description}</p>
                 </motion.div>
 
                 {/* Features */}
@@ -149,7 +143,7 @@ export function TutorialOverlay({ isOpen, onClose, onComplete }: TutorialOverlay
                     {step.features.map((feature, index) => (
                       <span
                         key={index}
-                        className="px-3 py-1.5 bg-orange-500/10 border border-orange-500/30 rounded-full text-sm text-orange-400"
+                        className="px-3 py-1.5 bg-[#fbbf24]/10 border border-[#fbbf24]/30 rounded-full text-sm text-[#fbbf24]"
                       >
                         {feature}
                       </span>
@@ -165,16 +159,15 @@ export function TutorialOverlay({ isOpen, onClose, onComplete }: TutorialOverlay
                 variant="ghost"
                 onClick={handlePrev}
                 disabled={currentStep === 0}
-                className="gap-2"
+                className="gap-2 text-[#888] hover:text-white"
               >
                 <ChevronLeft className="w-4 h-4" />
                 Back
               </Button>
 
               <Button
-                variant="primary"
                 onClick={handleNext}
-                className="gap-2"
+                className="gap-2 bg-[#fbbf24] text-[#1a1a1a] hover:bg-[#f59e0b]"
               >
                 {currentStep === tutorialSteps.length - 1 ? (
                   <>
@@ -190,10 +183,6 @@ export function TutorialOverlay({ isOpen, onClose, onComplete }: TutorialOverlay
               </Button>
             </div>
           </div>
-
-          {/* Decorative Elements */}
-          <div className="absolute -top-20 -right-20 w-40 h-40 bg-orange-500/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
         </motion.div>
       </motion.div>
     </AnimatePresence>

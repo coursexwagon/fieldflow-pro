@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
@@ -16,8 +16,6 @@ import {
   X,
   Menu,
   LogOut,
-  Settings,
-  ChevronRight,
   Truck,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -30,13 +28,12 @@ function getInitials(name: string | null | undefined): string {
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 }
 
-// Navigation items with // prefix for industrial look
+// Simple navigation - no decoration
 const navItems = [
-  { name: 'DISPATCH', href: '/app', icon: Truck },
-  { name: 'PROJECT', href: '/app/jobs', icon: MapPin },
-  { name: 'INVOICE', href: '/app/invoices', icon: FileText },
-  { name: 'TOOLS', href: '/app/more', icon: Wrench },
-  { name: 'PROFILE', href: '/app/account', icon: User },
+  { name: 'Dispatch', href: '/app', icon: Truck },
+  { name: 'Jobs', href: '/app/jobs', icon: MapPin },
+  { name: 'Invoices', href: '/app/invoices', icon: FileText },
+  { name: 'More', href: '/app/more', icon: Wrench },
 ];
 
 export default function AppLayout({
@@ -53,79 +50,52 @@ export default function AppLayout({
   const hideNav = pathname?.includes('/new') || pathname?.includes('/login') || pathname?.includes('/signup');
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] text-[#f5f5f5] font-body">
+    <div className="min-h-screen bg-[#1a1a1a] text-[#f5f5f5] font-sans">
       {/* Mobile Header */}
       {!hideNav && (
         <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-[#1a1a1a]/95 backdrop-blur border-b border-[#333]">
           <div className="h-full px-4 flex items-center justify-between">
             <button 
               onClick={() => setSidebarOpen(true)}
-              className="p-2 text-[#888] hover:text-[#00c2ff] transition-colors"
+              className="p-2 text-[#888] hover:text-white transition-colors"
             >
               <Menu className="w-5 h-5" />
             </button>
             
             <Link href="/app" className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-[#00c2ff] flex items-center justify-center">
+              <div className="w-7 h-7 bg-[#fbbf24] flex items-center justify-center">
                 <Wrench className="w-4 h-4 text-[#1a1a1a]" />
               </div>
-              <span className="font-display font-semibold text-sm tracking-tight">
-                F<span className="text-[#00c2ff]">//</span>F
+              <span className="font-semibold text-sm">
+                FIELD<span className="text-[#fbbf24]">FLOW</span>
               </span>
             </Link>
             
-            <div className="w-9" /> {/* Spacer for balance */}
+            <div className="w-9" />
           </div>
         </header>
       )}
 
-      {/* Desktop Left Sidebar - Brushed Metal */}
+      {/* Desktop Left Sidebar */}
       {!hideNav && (
-        <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 z-40 flex-col"
-          style={{
-            background: `
-              linear-gradient(135deg, 
-                rgba(45, 45, 50, 0.95) 0%,
-                rgba(35, 35, 40, 0.95) 50%,
-                rgba(45, 45, 50, 0.95) 100%
-              )
-            `,
-            boxShadow: 'inset -1px 0 0 rgba(255,255,255,0.05), inset 1px 0 0 rgba(0,0,0,0.3), 4px 0 20px rgba(0,0,0,0.5)',
-          }}
-        >
-          {/* Metal texture overlay */}
-          <div 
-            className="absolute inset-0 opacity-30 pointer-events-none"
-            style={{
-              backgroundImage: `
-                repeating-linear-gradient(
-                  90deg,
-                  transparent,
-                  transparent 2px,
-                  rgba(255,255,255,0.02) 2px,
-                  rgba(255,255,255,0.02) 4px
-                )
-              `
-            }}
-          />
-          
+        <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 z-40 flex-col bg-[#141414] border-r border-[#333]">
           {/* Logo */}
-          <div className="relative p-6 border-b border-[#333]/50">
+          <div className="p-6 border-b border-[#333]">
             <Link href="/app" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#00c2ff] flex items-center justify-center shadow-lg shadow-[#00c2ff]/20">
+              <div className="w-10 h-10 bg-[#fbbf24] flex items-center justify-center">
                 <Wrench className="w-5 h-5 text-[#1a1a1a]" />
               </div>
               <div>
-                <span className="font-display font-bold text-lg tracking-tight">
-                  F<span className="text-[#00c2ff]">//</span>F
+                <span className="font-bold text-lg">
+                  FIELD<span className="text-[#fbbf24]">FLOW</span>
                 </span>
-                <p className="text-[10px] text-[#666] font-mono tracking-widest uppercase">FieldFlow Pro</p>
+                <p className="text-[10px] text-[#666]">Pro</p>
               </div>
             </Link>
           </div>
 
           {/* Navigation */}
-          <nav className="relative flex-1 p-4">
+          <nav className="flex-1 p-4">
             <div className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -137,26 +107,19 @@ export default function AppLayout({
                     href={item.href}
                     className={`group flex items-center gap-3 px-4 py-3 relative transition-all duration-200 ${
                       isActive 
-                        ? 'text-[#00c2ff]' 
-                        : 'text-[#888] hover:text-[#f5f5f5]'
+                        ? 'text-[#fbbf24] bg-[#fbbf24]/10' 
+                        : 'text-[#888] hover:text-white'
                     }`}
                   >
-                    {/* Active indicator */}
                     {isActive && (
                       <motion.div
                         layoutId="activeNav"
-                        className="absolute left-0 top-0 bottom-0 w-1 bg-[#00c2ff]"
-                        style={{ boxShadow: '0 0 20px rgba(0, 194, 255, 0.5)' }}
+                        className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#fbbf24]"
                       />
                     )}
                     
-                    <Icon className="w-5 h-5 relative z-10" />
-                    <span className="font-mono text-xs tracking-wider relative z-10">
-                      //{item.name}
-                    </span>
-                    
-                    {/* Hover glow */}
-                    <div className="absolute inset-0 bg-[#00c2ff]/0 group-hover:bg-[#00c2ff]/5 transition-colors" />
+                    <Icon className="w-5 h-5" />
+                    <span className="text-sm font-medium">{item.name}</span>
                   </Link>
                 );
               })}
@@ -164,7 +127,7 @@ export default function AppLayout({
           </nav>
 
           {/* User Section */}
-          <div className="relative p-4 border-t border-[#333]/50">
+          <div className="p-4 border-t border-[#333]">
             {status === 'loading' ? (
               <div className="flex items-center gap-3 px-4 py-3">
                 <Loader2 className="w-5 h-5 animate-spin text-[#666]" />
@@ -172,24 +135,23 @@ export default function AppLayout({
             ) : (
               <div className="flex items-center gap-3 px-4 py-3">
                 <Avatar className="w-9 h-9 border border-[#444]">
-                  <AvatarFallback className="bg-[#2d2d2d] text-[#888] text-xs font-mono">
+                  <AvatarFallback className="bg-[#2d2d2d] text-[#888] text-xs">
                     {getInitials(session?.user?.name)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{session?.user?.name || 'User'}</p>
-                  <p className="text-xs text-[#666] font-mono truncate">{session?.user?.email}</p>
+                  <p className="text-xs text-[#666] truncate">{session?.user?.email}</p>
                 </div>
               </div>
             )}
             
-            {/* Logout Button */}
             <button
               onClick={() => signOut({ callbackUrl: '/' })}
-              className="w-full mt-2 flex items-center gap-3 px-4 py-3 text-[#666] hover:text-[#ff4444] transition-colors"
+              className="w-full mt-2 flex items-center gap-3 px-4 py-3 text-[#666] hover:text-[#ef4444] transition-colors"
             >
               <LogOut className="w-5 h-5" />
-              <span className="font-mono text-xs tracking-wider">// LOG OUT</span>
+              <span className="text-sm">Log out</span>
             </button>
           </div>
         </aside>
@@ -211,38 +173,26 @@ export default function AppLayout({
               animate={{ x: 0 }}
               exit={{ x: -300 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="lg:hidden fixed left-0 top-0 bottom-0 w-72 z-50 flex flex-col"
-              style={{
-                background: `
-                  linear-gradient(135deg, 
-                    rgba(45, 45, 50, 0.98) 0%,
-                    rgba(35, 35, 40, 0.98) 50%,
-                    rgba(45, 45, 50, 0.98) 100%
-                  )
-                `,
-              }}
+              className="lg:hidden fixed left-0 top-0 bottom-0 w-72 z-50 flex flex-col bg-[#141414]"
             >
-              {/* Close button */}
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="absolute top-4 right-4 p-2 text-[#666] hover:text-[#f5f5f5]"
+                className="absolute top-4 right-4 p-2 text-[#666] hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
 
-              {/* Logo */}
-              <div className="p-6 border-b border-[#333]/50">
+              <div className="p-6 border-b border-[#333]">
                 <Link href="/app" className="flex items-center gap-3" onClick={() => setSidebarOpen(false)}>
-                  <div className="w-10 h-10 bg-[#00c2ff] flex items-center justify-center">
+                  <div className="w-10 h-10 bg-[#fbbf24] flex items-center justify-center">
                     <Wrench className="w-5 h-5 text-[#1a1a1a]" />
                   </div>
-                  <span className="font-display font-bold text-lg">
-                    F<span className="text-[#00c2ff]">//</span>F
+                  <span className="font-bold text-lg">
+                    FIELD<span className="text-[#fbbf24]">FLOW</span>
                   </span>
                 </Link>
               </div>
 
-              {/* Navigation */}
               <nav className="flex-1 p-4">
                 <div className="space-y-1">
                   {navItems.map((item) => {
@@ -256,29 +206,28 @@ export default function AppLayout({
                         onClick={() => setSidebarOpen(false)}
                         className={`flex items-center gap-3 px-4 py-3 ${
                           isActive 
-                            ? 'text-[#00c2ff] bg-[#00c2ff]/10' 
-                            : 'text-[#888] hover:text-[#f5f5f5]'
+                            ? 'text-[#fbbf24] bg-[#fbbf24]/10' 
+                            : 'text-[#888] hover:text-white'
                         }`}
                       >
                         <Icon className="w-5 h-5" />
-                        <span className="font-mono text-xs tracking-wider">//{item.name}</span>
+                        <span className="text-sm font-medium">{item.name}</span>
                       </Link>
                     );
                   })}
                 </div>
               </nav>
 
-              {/* User & Logout */}
-              <div className="p-4 border-t border-[#333]/50">
+              <div className="p-4 border-t border-[#333]">
                 <button
                   onClick={() => {
                     setSidebarOpen(false);
                     signOut({ callbackUrl: '/' });
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-[#666] hover:text-[#ff4444]"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-[#666] hover:text-[#ef4444]"
                 >
                   <LogOut className="w-5 h-5" />
-                  <span className="font-mono text-xs tracking-wider">// LOG OUT</span>
+                  <span className="text-sm">Log out</span>
                 </button>
               </div>
             </motion.aside>
@@ -291,9 +240,9 @@ export default function AppLayout({
         {children}
       </main>
 
-      {/* Floating Action Button */}
+      {/* Single FAB Button */}
       {!hideNav && (
-        <div className="fixed bottom-6 right-6 z-50 lg:bottom-8 lg:right-8">
+        <div className="fixed bottom-20 lg:bottom-8 right-6 lg:right-8 z-50">
           <AnimatePresence>
             {showFabMenu && (
               <motion.div
@@ -304,27 +253,27 @@ export default function AppLayout({
               >
                 <Link 
                   href="/app/jobs/new"
-                  className="flex items-center gap-3 bg-[#2d2d2d] border border-[#444] px-5 py-3 text-sm hover:border-[#00c2ff] hover:text-[#00c2ff] transition-all shadow-lg"
+                  className="flex items-center gap-3 bg-[#2d2d2d] border border-[#444] px-5 py-3 text-sm hover:border-[#fbbf24] hover:text-[#fbbf24] transition-all shadow-lg"
                   onClick={() => setShowFabMenu(false)}
                 >
                   <MapPin className="w-4 h-4" />
-                  <span className="font-mono text-xs">// NEW JOB</span>
+                  <span>New Job</span>
                 </Link>
                 <Link 
                   href="/app/invoices/new"
-                  className="flex items-center gap-3 bg-[#2d2d2d] border border-[#444] px-5 py-3 text-sm hover:border-[#00c2ff] hover:text-[#00c2ff] transition-all shadow-lg"
+                  className="flex items-center gap-3 bg-[#2d2d2d] border border-[#444] px-5 py-3 text-sm hover:border-[#fbbf24] hover:text-[#fbbf24] transition-all shadow-lg"
                   onClick={() => setShowFabMenu(false)}
                 >
                   <FileText className="w-4 h-4" />
-                  <span className="font-mono text-xs">// NEW INVOICE</span>
+                  <span>New Invoice</span>
                 </Link>
                 <Link 
                   href="/app/customers/new"
-                  className="flex items-center gap-3 bg-[#2d2d2d] border border-[#444] px-5 py-3 text-sm hover:border-[#00c2ff] hover:text-[#00c2ff] transition-all shadow-lg"
+                  className="flex items-center gap-3 bg-[#2d2d2d] border border-[#444] px-5 py-3 text-sm hover:border-[#fbbf24] hover:text-[#fbbf24] transition-all shadow-lg"
                   onClick={() => setShowFabMenu(false)}
                 >
                   <User className="w-4 h-4" />
-                  <span className="font-mono text-xs">// NEW CUSTOMER</span>
+                  <span>New Customer</span>
                 </Link>
               </motion.div>
             )}
@@ -333,7 +282,7 @@ export default function AppLayout({
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => setShowFabMenu(!showFabMenu)}
-            className="w-14 h-14 bg-[#00c2ff] flex items-center justify-center shadow-lg shadow-[#00c2ff]/30"
+            className="w-14 h-14 bg-[#fbbf24] flex items-center justify-center shadow-lg shadow-[#fbbf24]/30"
           >
             <motion.div
               animate={{ rotate: showFabMenu ? 45 : 0 }}
@@ -349,7 +298,7 @@ export default function AppLayout({
         </div>
       )}
 
-      {/* Mobile Bottom Nav - Compact */}
+      {/* Mobile Bottom Nav */}
       {!hideNav && (
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-[#1a1a1a]/95 backdrop-blur border-t border-[#333]">
           <div className="h-full grid grid-cols-4">
@@ -357,7 +306,7 @@ export default function AppLayout({
               { name: 'Today', href: '/app', icon: Calendar },
               { name: 'Jobs', href: '/app/jobs', icon: MapPin },
               { name: 'Cash', href: '/app/invoices', icon: FileText },
-              { name: 'Tools', href: '/app/more', icon: Wrench },
+              { name: 'More', href: '/app/more', icon: Wrench },
             ].map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href || 
@@ -367,11 +316,11 @@ export default function AppLayout({
                   key={item.name}
                   href={item.href}
                   className={`flex flex-col items-center justify-center gap-1 transition-colors ${
-                    isActive ? 'text-[#00c2ff]' : 'text-[#666] hover:text-[#888]'
+                    isActive ? 'text-[#fbbf24]' : 'text-[#666] hover:text-[#888]'
                   }`}
                 >
                   <Icon className="w-5 h-5" />
-                  <span className="text-[10px] font-mono">{item.name}</span>
+                  <span className="text-[10px]">{item.name}</span>
                 </Link>
               );
             })}
@@ -379,7 +328,7 @@ export default function AppLayout({
         </nav>
       )}
 
-      {/* Tutorial Overlay - Shows on first login */}
+      {/* Tutorial Overlay */}
       {!hideNav && <DashboardTutorial />}
     </div>
   );

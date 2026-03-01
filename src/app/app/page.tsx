@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { useDashboard } from '@/hooks/useApi';
 
-// Time-based greeting with industrial feel
+// Time-based greeting
 function getTimeContext() {
   const hour = new Date().getHours();
   if (hour < 6) return { greeting: 'Early shift', sub: 'The grind never stops', icon: Moon };
@@ -50,7 +50,7 @@ function formatDate(date: Date): string {
 
 export default function DashboardPage() {
   const { data: session } = useSession();
-  const { data, isLoading, error } = useDashboard();
+  const { data, isLoading, error, refetch } = useDashboard();
   const [showWelcome, setShowWelcome] = useState(false);
 
   const timeContext = getTimeContext();
@@ -71,9 +71,9 @@ export default function DashboardPage() {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-            className="w-10 h-10 border-2 border-[#00c2ff] border-t-transparent mx-auto mb-4"
+            className="w-10 h-10 border-2 border-[#fbbf24] border-t-transparent mx-auto mb-4"
           />
-          <p className="text-[#666] text-sm font-mono tracking-wider">LOADING...</p>
+          <p className="text-[#666] text-sm">Loading...</p>
         </div>
       </div>
     );
@@ -82,22 +82,23 @@ export default function DashboardPage() {
   if (error || !data) {
     return (
       <div className="p-6 lg:p-8 text-center">
-        <div className="w-14 h-14 bg-[#ff4444]/10 border border-[#ff4444]/30 mx-auto mb-4 flex items-center justify-center">
-          <AlertCircle className="w-7 h-7 text-[#ff4444]" />
+        <div className="w-14 h-14 bg-[#ef4444]/10 border border-[#ef4444]/30 mx-auto mb-4 flex items-center justify-center">
+          <AlertCircle className="w-7 h-7 text-[#ef4444]" />
         </div>
-        <p className="font-mono text-sm text-[#888] mb-4">SYSTEM ERROR</p>
-        <p className="text-[#666] mb-6">Something went wrong loading your dispatch.</p>
+        <p className="text-sm text-[#888] mb-2">Something went wrong</p>
+        <p className="text-[#666] mb-6">Couldn&apos;t load your dispatch data.</p>
         <button 
-          onClick={() => window.location.reload()}
-          className="text-[#00c2ff] font-mono text-sm tracking-wider hover:underline"
+          onClick={() => refetch()}
+          className="text-[#fbbf24] text-sm font-medium hover:underline"
         >
-          RETRY
+          Try again
         </button>
       </div>
     );
   }
 
   const { stats, recentJobs, upcomingJobs } = data;
+  const upcomingJob = upcomingJobs;
   const userName = session?.user?.name?.split(' ')[0] || 'Operator';
   const todayJobs = recentJobs?.filter((job: any) => {
     const jobDate = new Date(job.scheduledAt).toDateString();
@@ -109,11 +110,11 @@ export default function DashboardPage() {
     .filter((job: any) => job.status === 'COMPLETED')
     .reduce((sum: number, job: any) => sum + (job.price || 0), 0);
 
-  const hasJobs = todayJobs.length > 0 || upcomingJobs;
+  const hasJobs = todayJobs.length > 0 || upcomingJob;
 
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-4xl mx-auto">
-      {/* Header - Industrial style */}
+      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -122,16 +123,16 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center gap-2 text-[#666] mb-1">
             <TimeIcon className="w-4 h-4" />
-            <span className="text-xs font-mono tracking-wider uppercase">{formatDate(new Date())}</span>
+            <span className="text-xs uppercase">{formatDate(new Date())}</span>
           </div>
-          <h1 className="font-display text-2xl lg:text-3xl font-bold">
-            {timeContext.greeting}, <span className="text-[#00c2ff]">{userName}</span>
+          <h1 className="text-2xl lg:text-3xl font-bold">
+            {timeContext.greeting}, <span className="text-[#fbbf24]">{userName}</span>
           </h1>
           <p className="text-[#666] text-sm mt-1">{timeContext.sub}</p>
         </div>
         
         <div className="text-right">
-          <p className="text-2xl lg:text-3xl font-mono font-bold tabular-nums text-[#00c2ff]">
+          <p className="text-2xl lg:text-3xl font-mono font-bold tabular-nums text-[#fbbf24]">
             {formatTime(new Date())}
           </p>
         </div>
@@ -144,18 +145,17 @@ export default function DashboardPage() {
         transition={{ delay: 0.1 }}
         className="relative overflow-hidden"
       >
-        {/* Card with industrial borders */}
         <div className="bg-[#222] border border-[#333] relative">
           {/* Top accent line */}
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#00c2ff] via-[#00c2ff]/50 to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#fbbf24] via-[#fbbf24]/50 to-transparent" />
           
           <div className="p-5 lg:p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[#00c2ff] animate-pulse" />
-                <p className="text-[#666] text-xs font-mono tracking-widest uppercase">Today&apos;s Run</p>
+                <div className="w-2 h-2 bg-[#fbbf24] animate-pulse" />
+                <p className="text-[#666] text-xs uppercase tracking-wide">Today&apos;s Run</p>
               </div>
-              <span className="text-[#666] text-xs font-mono">
+              <span className="text-[#666] text-xs">
                 {todayJobs.length} {todayJobs.length === 1 ? 'job' : 'jobs'}
               </span>
             </div>
@@ -163,7 +163,7 @@ export default function DashboardPage() {
             {hasJobs ? (
               <div className="flex items-end justify-between">
                 <div>
-                  <p className="font-display text-4xl lg:text-5xl font-bold tabular-nums">
+                  <p className="text-4xl lg:text-5xl font-bold tabular-nums">
                     ${todayEarnings.toLocaleString()}
                   </p>
                   <p className="text-[#666] text-sm mt-1">collected today</p>
@@ -175,25 +175,25 @@ export default function DashboardPage() {
                     <p className="text-xl font-mono font-bold text-[#22c55e]">
                       {todayJobs.filter((j: any) => j.status === 'COMPLETED').length}
                     </p>
-                    <p className="text-[10px] text-[#666] font-mono uppercase">Done</p>
+                    <p className="text-[10px] text-[#666] uppercase">Done</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xl font-mono font-bold text-[#00c2ff]">
+                    <p className="text-xl font-mono font-bold text-[#fbbf24]">
                       {todayJobs.filter((j: any) => j.status === 'IN_PROGRESS').length}
                     </p>
-                    <p className="text-[10px] text-[#666] font-mono uppercase">Active</p>
+                    <p className="text-[10px] text-[#666] uppercase">Active</p>
                   </div>
                   <div className="text-center">
                     <p className="text-xl font-mono font-bold text-[#666]">
-                      {todayJobs.filter((j: any) => j.status === 'PENDING').length}
+                      {todayJobs.filter((j: any) => j.status === 'SCHEDULED').length}
                     </p>
-                    <p className="text-[10px] text-[#666] font-mono uppercase">Queue</p>
+                    <p className="text-[10px] text-[#666] uppercase">Queue</p>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="text-center py-4">
-                <p className="text-[#666] font-mono text-sm">No jobs scheduled</p>
+                <p className="text-[#666] text-sm">No jobs scheduled</p>
                 <p className="text-[#444] text-xs mt-1">Territory is clear</p>
               </div>
             )}
@@ -208,9 +208,9 @@ export default function DashboardPage() {
         transition={{ delay: 0.2 }}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-mono text-xs tracking-widest text-[#666] uppercase">Today&apos;s Timeline</h2>
-          <Link href="/app/schedule" className="text-[#00c2ff] text-xs font-mono flex items-center gap-1 hover:underline">
-            WEEK VIEW
+          <h2 className="text-xs tracking-wide text-[#666] uppercase">Today&apos;s Timeline</h2>
+          <Link href="/app/schedule" className="text-[#fbbf24] text-xs flex items-center gap-1 hover:underline">
+            Week View
             <ChevronRight className="w-3 h-3" />
           </Link>
         </div>
@@ -234,7 +234,7 @@ export default function DashboardPage() {
                     job.status === 'COMPLETED' 
                       ? 'bg-[#22c55e] border-[#22c55e]' 
                       : job.status === 'IN_PROGRESS' 
-                        ? 'bg-[#00c2ff] border-[#00c2ff] animate-pulse' 
+                        ? 'bg-[#fbbf24] border-[#fbbf24] animate-pulse' 
                         : 'bg-[#1a1a1a] border-[#444]'
                   }`}
                 />
@@ -243,17 +243,17 @@ export default function DashboardPage() {
                   <div className="group flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="font-mono text-xs text-[#666]">{formatTime(job.scheduledAt)}</p>
+                        <p className="text-xs text-[#666]">{formatTime(job.scheduledAt)}</p>
                         {job.status === 'COMPLETED' && (
-                          <span className="text-[10px] font-mono text-[#22c55e] bg-[#22c55e]/10 px-2 py-0.5">DONE</span>
+                          <span className="text-[10px] text-[#22c55e] bg-[#22c55e]/10 px-2 py-0.5">DONE</span>
                         )}
                         {job.status === 'IN_PROGRESS' && (
-                          <span className="text-[10px] font-mono text-[#00c2ff] bg-[#00c2ff]/10 px-2 py-0.5 flex items-center gap-1">
+                          <span className="text-[10px] text-[#fbbf24] bg-[#fbbf24]/10 px-2 py-0.5 flex items-center gap-1">
                             <Timer className="w-3 h-3" /> ACTIVE
                           </span>
                         )}
                       </div>
-                      <p className="font-medium group-hover:text-[#00c2ff] transition-colors">{job.title}</p>
+                      <p className="font-medium group-hover:text-[#fbbf24] transition-colors">{job.title}</p>
                       {job.customer?.name && (
                         <p className="text-sm text-[#666]">{job.customer.name}</p>
                       )}
@@ -267,9 +267,9 @@ export default function DashboardPage() {
                     
                     <div className="text-right">
                       {job.price && (
-                        <p className="font-mono text-lg text-[#00c2ff]">${job.price}</p>
+                        <p className="font-mono text-lg text-[#fbbf24]">${job.price}</p>
                       )}
-                      <ChevronRight className="w-4 h-4 text-[#444] group-hover:text-[#00c2ff] transition-colors mt-2" />
+                      <ChevronRight className="w-4 h-4 text-[#444] group-hover:text-[#fbbf24] transition-colors mt-2" />
                     </div>
                   </div>
                 </Link>
@@ -282,57 +282,56 @@ export default function DashboardPage() {
             <div className="w-16 h-16 bg-[#2a2a2a] border border-[#333] mx-auto mb-4 flex items-center justify-center">
               <Coffee className="w-8 h-8 text-[#444]" />
             </div>
-            <p className="font-display font-semibold text-lg mb-1">Territory is clear</p>
+            <p className="font-semibold text-lg mb-1">Territory is clear</p>
             <p className="text-[#666] text-sm mb-6">Time for maintenance or coffee?</p>
             <Link href="/app/jobs/new">
-              <button className="inline-flex items-center gap-2 bg-[#00c2ff] text-[#1a1a1a] px-6 py-3 font-mono text-sm font-semibold tracking-wider hover:bg-[#00a8e0] transition-colors">
+              <button className="inline-flex items-center gap-2 bg-[#fbbf24] text-[#1a1a1a] px-6 py-3 text-sm font-semibold hover:bg-[#f59e0b] transition-colors">
                 <Plus className="w-4 h-4" />
-                // ADD JOB
+                Add Job
               </button>
             </Link>
           </div>
         )}
       </motion.div>
 
-      {/* Up Next Card - If there's an upcoming job */}
-      {upcomingJobs && (
+      {/* Up Next Card */}
+      {upcomingJob && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           className="relative"
         >
-          {/* Cyan glow border */}
-          <div className="absolute -inset-[1px] bg-gradient-to-r from-[#00c2ff]/50 via-[#00c2ff] to-[#00c2ff]/50 opacity-50" />
-          <div className="relative bg-[#1a1a1a] border border-[#00c2ff]/30 p-5">
+          <div className="absolute -inset-[1px] bg-gradient-to-r from-[#fbbf24]/50 via-[#fbbf24] to-[#fbbf24]/50 opacity-50" />
+          <div className="relative bg-[#1a1a1a] border border-[#fbbf24]/30 p-5">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[#00c2ff] animate-pulse" />
-                <span className="text-[#00c2ff] text-xs font-mono tracking-widest">UP NEXT</span>
+                <div className="w-2 h-2 bg-[#fbbf24] animate-pulse" />
+                <span className="text-[#fbbf24] text-xs uppercase tracking-wide">Up Next</span>
               </div>
-              <span className="font-mono text-sm text-[#666]">{formatTime(upcomingJobs.scheduledAt)}</span>
+              <span className="text-sm text-[#666]">{formatTime(upcomingJob.scheduledAt)}</span>
             </div>
             
-            <p className="font-display font-semibold text-xl mb-1">{upcomingJobs.title}</p>
-            {upcomingJobs.customer?.name && (
-              <p className="text-[#888]">{upcomingJobs.customer.name}</p>
+            <p className="font-semibold text-xl mb-1">{upcomingJob.title}</p>
+            {upcomingJob.customer?.name && (
+              <p className="text-[#888]">{upcomingJob.customer.name}</p>
             )}
-            {upcomingJobs.customer?.address && (
+            {upcomingJob.customer?.address && (
               <p className="text-[#666] text-sm flex items-center gap-1 mt-2">
                 <MapPin className="w-4 h-4" />
-                {upcomingJobs.customer.address}
+                {upcomingJob.customer.address}
               </p>
             )}
             
             <div className="flex gap-3 mt-5">
-              <Link href={`/app/jobs/${upcomingJobs.id}`} className="flex-1">
-                <button className="w-full border border-[#444] py-3 text-sm font-mono tracking-wider hover:border-[#00c2ff] hover:text-[#00c2ff] transition-colors">
-                  DETAILS
+              <Link href={`/app/jobs/${upcomingJob.id}`} className="flex-1">
+                <button className="w-full border border-[#444] py-3 text-sm font-medium hover:border-[#fbbf24] hover:text-[#fbbf24] transition-colors">
+                  Details
                 </button>
               </Link>
-              <Link href={`/app/jobs/${upcomingJobs.id}`} className="flex-1">
-                <button className="w-full bg-[#00c2ff] text-[#1a1a1a] py-3 text-sm font-mono font-semibold tracking-wider hover:bg-[#00a8e0] transition-colors">
-                  START JOB
+              <Link href={`/app/jobs/${upcomingJob.id}`} className="flex-1">
+                <button className="w-full bg-[#fbbf24] text-[#1a1a1a] py-3 text-sm font-semibold hover:bg-[#f59e0b] transition-colors">
+                  Start Job
                 </button>
               </Link>
             </div>
@@ -340,7 +339,7 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
-      {/* Recent Jobs - Compact List */}
+      {/* Recent Jobs */}
       {recentJobs && recentJobs.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -348,9 +347,9 @@ export default function DashboardPage() {
           transition={{ delay: 0.4 }}
         >
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-mono text-xs tracking-widest text-[#666] uppercase">Recent Activity</h2>
-            <Link href="/app/jobs" className="text-[#666] text-xs font-mono hover:text-[#00c2ff]">
-              VIEW ALL
+            <h2 className="text-xs tracking-wide text-[#666] uppercase">Recent Activity</h2>
+            <Link href="/app/jobs" className="text-[#666] text-xs hover:text-[#fbbf24]">
+              View All
             </Link>
           </div>
           
@@ -363,20 +362,20 @@ export default function DashboardPage() {
               >
                 <div className={`w-3 h-3 ${
                   job.status === 'COMPLETED' ? 'bg-[#22c55e]' :
-                  job.status === 'IN_PROGRESS' ? 'bg-[#00c2ff]' :
+                  job.status === 'IN_PROGRESS' ? 'bg-[#fbbf24]' :
                   'bg-[#444]'
                 }`} />
                 
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate group-hover:text-[#00c2ff] transition-colors">{job.title}</p>
+                  <p className="text-sm font-medium truncate group-hover:text-[#fbbf24] transition-colors">{job.title}</p>
                   <p className="text-xs text-[#666]">{job.customer?.name || 'No customer'}</p>
                 </div>
                 
                 <div className="flex items-center gap-3">
                   {job.price && (
-                    <p className="font-mono text-sm text-[#00c2ff]">${job.price}</p>
+                    <p className="font-mono text-sm text-[#fbbf24]">${job.price}</p>
                   )}
-                  <ChevronRight className="w-4 h-4 text-[#444] group-hover:text-[#00c2ff] transition-colors" />
+                  <ChevronRight className="w-4 h-4 text-[#444] group-hover:text-[#fbbf24] transition-colors" />
                 </div>
               </Link>
             ))}
@@ -384,7 +383,7 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
-      {/* Welcome Modal for first-time users */}
+      {/* Welcome Modal */}
       {showWelcome && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -397,12 +396,12 @@ export default function DashboardPage() {
             animate={{ scale: 1, opacity: 1 }}
             className="max-w-md w-full text-center"
           >
-            <div className="w-20 h-20 bg-[#00c2ff] mx-auto mb-8 flex items-center justify-center shadow-lg shadow-[#00c2ff]/30">
+            <div className="w-20 h-20 bg-[#fbbf24] mx-auto mb-8 flex items-center justify-center shadow-lg shadow-[#fbbf24]/30">
               <Wrench className="w-10 h-10 text-[#1a1a1a]" />
             </div>
             
-            <h2 className="font-display text-3xl font-bold mb-3">
-              Your truck is <span className="text-[#00c2ff]">running</span>.
+            <h2 className="text-3xl font-bold mb-3">
+              Your truck is <span className="text-[#fbbf24]">running</span>.
             </h2>
             <p className="text-[#888] mb-8 text-lg">
               This is your dispatch view. Jobs, money, and your timeline—all in one place.
@@ -410,9 +409,9 @@ export default function DashboardPage() {
             
             <button
               onClick={() => setShowWelcome(false)}
-              className="bg-[#00c2ff] text-[#1a1a1a] px-10 py-4 font-mono font-semibold tracking-wider hover:bg-[#00a8e0] transition-colors"
+              className="bg-[#fbbf24] text-[#1a1a1a] px-10 py-4 font-semibold hover:bg-[#f59e0b] transition-colors"
             >
-              LET&apos;S GO
+              Let&apos;s Go
             </button>
           </motion.div>
         </motion.div>
