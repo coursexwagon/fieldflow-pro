@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { sendInvoiceEmail } from '@/lib/email';
+import { supabase } from '@/lib/db';
 
 // POST /api/invoices/[id]/send - Send invoice email
 export async function POST(
@@ -17,33 +18,38 @@ export async function POST(
 
     const { id } = await params;
 
-    // Get invoice with all details
+    // Get invoice
     const invoice = await db.invoice.findFirst({
       where: { id, userId: user.id },
-      include: {
-        customer: true,
-        items: true,
-      },
+      include: { customer: true },
     });
 
     if (!invoice) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
-    if (!invoice.customer.email) {
+    // Get customer
+    const customer = await db.customer.findUnique({ where: { id: invoice.customerId } });
+    if (!customer || !customer.email) {
       return NextResponse.json({ 
         error: 'Customer has no email address' 
       }, { status: 400 });
     }
 
+    // Get items
+    const { data: items } = await supabase
+      .from('invoice_items')
+      .select('*')
+      .eq('invoiceId', id);
+
     // Send the invoice email
     const result = await sendInvoiceEmail(
-      invoice.customer.email,
-      invoice.customer.name,
+      customer.email,
+      customer.name,
       invoice.invoiceNumber,
       invoice.total,
       user.businessName || user.name,
-      invoice.items.map(item => ({
+      (items || []).map((item: { description: string; quantity: number; unitPrice: number; total: number }) => ({
         description: item.description,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
@@ -65,7 +71,7 @@ export async function POST(
 
     return NextResponse.json({ 
       success: true, 
-      message: `Invoice sent to ${invoice.customer.email}` 
+      message: `Invoice sent to ${customer.email}` 
     });
   } catch (error) {
     console.error('Send invoice error:', error);

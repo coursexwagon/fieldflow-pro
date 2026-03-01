@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { supabase } from '@/lib/db';
 
 // GET /api/dashboard - Get dashboard stats
 export async function GET(request: NextRequest) {
@@ -17,84 +18,63 @@ export async function GET(request: NextRequest) {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Get all stats in parallel
-    const [
-      totalCustomers,
-      todaysJobs,
-      completedJobsToday,
-      pendingJobs,
-      totalRevenue,
-      recentJobs,
-      upcomingJobs,
-    ] = await Promise.all([
-      // Total customers for this user
-      db.customer.count({
-        where: { userId: user.id },
-      }),
+    // Get basic counts
+    const totalCustomers = await db.customer.count({ where: { userId: user.id } });
+    
+    // Get all jobs for this user
+    const allJobs = await db.job.findMany({ where: { userId: user.id } });
+    
+    // Get paid invoices for revenue
+    const paidInvoices = await db.invoice.findMany({ 
+      where: { userId: user.id, status: 'PAID' } 
+    });
+    const totalRevenue = paidInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
+    
+    // Calculate job stats
+    const todaysJobs = allJobs.filter(job => {
+      if (!job.scheduledAt) return false;
+      const scheduledDate = new Date(job.scheduledAt);
+      return scheduledDate >= today && scheduledDate < tomorrow;
+    }).length;
+    
+    const completedJobsToday = allJobs.filter(job => {
+      if (job.status !== 'COMPLETED' || !job.completedAt) return false;
+      const completedDate = new Date(job.completedAt);
+      return completedDate >= today && completedDate < tomorrow;
+    }).length;
+    
+    const pendingJobs = allJobs.filter(job => 
+      job.status === 'SCHEDULED' || job.status === 'IN_PROGRESS'
+    ).length;
+    
+    // Get recent jobs with customers
+    const recentJobs = await db.job.findMany({
+      where: { userId: user.id },
+      include: { customer: true },
+      take: 5,
+    });
+    
+    // Sort by createdAt desc
+    recentJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    // Get upcoming job
+    const now = new Date();
+    const scheduledJobs = allJobs.filter(job => 
+      job.status === 'SCHEDULED' && job.scheduledAt && new Date(job.scheduledAt) >= now
+    );
+    
+    let upcomingJob = null;
+    if (scheduledJobs.length > 0) {
+      // Sort by scheduledAt asc
+      scheduledJobs.sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime());
+      upcomingJob = scheduledJobs[0];
       
-      // Today's scheduled jobs
-      db.job.count({
-        where: {
-          userId: user.id,
-          scheduledAt: {
-            gte: today,
-            lt: tomorrow,
-          },
-        },
-      }),
-      
-      // Completed jobs today
-      db.job.count({
-        where: {
-          userId: user.id,
-          status: 'COMPLETED',
-          completedAt: {
-            gte: today,
-            lt: tomorrow,
-          },
-        },
-      }),
-      
-      // Pending jobs
-      db.job.count({
-        where: {
-          userId: user.id,
-          status: { in: ['SCHEDULED', 'IN_PROGRESS'] },
-        },
-      }),
-      
-      // Total revenue
-      db.invoice.aggregate({
-        where: {
-          userId: user.id,
-          status: 'PAID',
-        },
-        _sum: {
-          total: true,
-        },
-      }),
-      
-      // Recent jobs
-      db.job.findMany({
-        where: { userId: user.id },
-        include: { customer: true },
-        orderBy: { createdAt: 'desc' },
-        take: 5,
-      }),
-      
-      // Upcoming job
-      db.job.findFirst({
-        where: {
-          userId: user.id,
-          status: 'SCHEDULED',
-          scheduledAt: {
-            gte: new Date(),
-          },
-        },
-        include: { customer: true },
-        orderBy: { scheduledAt: 'asc' },
-      }),
-    ]);
+      // Get customer for upcoming job
+      if (upcomingJob) {
+        const customer = await db.customer.findUnique({ where: { id: upcomingJob.customerId } });
+        upcomingJob = { ...upcomingJob, customer };
+      }
+    }
 
     return NextResponse.json({
       stats: {
@@ -102,10 +82,10 @@ export async function GET(request: NextRequest) {
         todaysJobs,
         completedJobsToday,
         pendingJobs,
-        totalRevenue: totalRevenue._sum.total || 0,
+        totalRevenue,
       },
-      recentJobs,
-      upcomingJobs,
+      recentJobs: recentJobs.slice(0, 5),
+      upcomingJob,
     });
   } catch (error) {
     console.error('Get dashboard error:', error);

@@ -12,18 +12,20 @@ export async function getCurrentUser() {
     
     const user = await db.user.findUnique({
       where: { id: session.user.id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        businessName: true,
-        tradeType: true,
-        phone: true,
-        avatar: true,
-      },
     });
     
-    return user;
+    if (!user) return null;
+    
+    // Return only selected fields
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      businessName: user.businessName,
+      tradeType: user.tradeType,
+      phone: user.phone,
+      avatar: user.avatar,
+    };
   } catch (error) {
     console.error('Get current user error:', error);
     return null;

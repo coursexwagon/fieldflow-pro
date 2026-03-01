@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { supabase } from '@/lib/db';
 
 // GET /api/invoices/[id] - Get a single invoice
 export async function GET(
@@ -18,22 +19,39 @@ export async function GET(
 
     const invoice = await db.invoice.findFirst({
       where: { id, userId: user.id },
-      include: {
-        customer: true,
-        items: true,
-        job: {
-          include: {
-            photos: true,
-          },
-        },
-      },
+      include: { customer: true },
     });
 
     if (!invoice) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ invoice });
+    // Get items
+    const { data: items } = await supabase
+      .from('invoice_items')
+      .select('*')
+      .eq('invoiceId', id);
+
+    // Get job if exists
+    let job = null;
+    if (invoice.jobId) {
+      job = await db.job.findUnique({ where: { id: invoice.jobId } });
+      if (job) {
+        const { data: photos } = await supabase
+          .from('photos')
+          .select('*')
+          .eq('jobId', job.id);
+        job = { ...job, photos: photos || [] };
+      }
+    }
+
+    return NextResponse.json({ 
+      invoice: {
+        ...invoice,
+        items: items || [],
+        job,
+      }
+    });
   } catch (error) {
     console.error('Get invoice error:', error);
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
@@ -65,7 +83,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     
     if (status !== undefined) {
       updateData.status = status;
@@ -79,36 +97,46 @@ export async function PUT(
     // If items are provided, update them
     if (items && items.length > 0) {
       // Delete existing items
-      await db.invoiceItem.deleteMany({
-        where: { invoiceId: id },
-      });
+      await db.invoiceItem.deleteMany({ where: { invoiceId: id } });
 
       // Calculate new total
-      const total = items.reduce((sum: number, item: any) => {
+      const total = items.reduce((sum: number, item: { quantity: number; unitPrice: number }) => {
         return sum + (item.quantity * item.unitPrice);
       }, 0);
 
       updateData.total = total;
-      updateData.items = {
-        create: items.map((item: any) => ({
+
+      // Create new items
+      await db.invoiceItem.createMany({
+        data: items.map((item: { description: string; quantity: number; unitPrice: number }) => ({
           description: item.description,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           total: item.quantity * item.unitPrice,
+          invoiceId: id,
         })),
-      };
+      });
     }
 
     const invoice = await db.invoice.update({
       where: { id },
       data: updateData,
-      include: {
-        customer: true,
-        items: true,
-      },
     });
 
-    return NextResponse.json({ invoice });
+    // Get customer and items
+    const customer = await db.customer.findUnique({ where: { id: invoice.customerId } });
+    const { data: invoiceItems } = await supabase
+      .from('invoice_items')
+      .select('*')
+      .eq('invoiceId', id);
+
+    return NextResponse.json({ 
+      invoice: {
+        ...invoice,
+        customer,
+        items: invoiceItems || [],
+      }
+    });
   } catch (error) {
     console.error('Update invoice error:', error);
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
@@ -139,13 +167,9 @@ export async function DELETE(
     }
 
     // Delete items first
-    await db.invoiceItem.deleteMany({
-      where: { invoiceId: id },
-    });
+    await db.invoiceItem.deleteMany({ where: { invoiceId: id } });
 
-    await db.invoice.delete({
-      where: { id },
-    });
+    await db.invoice.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
   } catch (error) {

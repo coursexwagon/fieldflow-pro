@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { supabase } from '@/lib/db';
 
 // GET /api/jobs/[id] - Get a single job
 export async function GET(
@@ -18,22 +19,42 @@ export async function GET(
 
     const job = await db.job.findFirst({
       where: { id, userId: user.id },
-      include: {
-        customer: true,
-        photos: true,
-        invoice: {
-          include: {
-            items: true,
-          },
-        },
-      },
+      include: { customer: true },
     });
 
     if (!job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ job });
+    // Get photos
+    const { data: photos } = await supabase
+      .from('photos')
+      .select('*')
+      .eq('jobId', id);
+
+    // Get invoice if exists
+    const invoices = await db.invoice.findMany({ 
+      where: { jobId: id },
+      include: { customer: true },
+    });
+    
+    // Get items for each invoice
+    let invoice = invoices[0] || null;
+    if (invoice) {
+      const { data: items } = await supabase
+        .from('invoice_items')
+        .select('*')
+        .eq('invoiceId', invoice.id);
+      invoice = { ...invoice, items: items || [] };
+    }
+
+    return NextResponse.json({ 
+      job: {
+        ...job,
+        photos: photos || [],
+        invoice,
+      }
+    });
   } catch (error) {
     console.error('Get job error:', error);
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
@@ -65,7 +86,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
@@ -84,13 +105,22 @@ export async function PUT(
     const job = await db.job.update({
       where: { id },
       data: updateData,
-      include: {
-        customer: true,
-        photos: true,
-      },
     });
 
-    return NextResponse.json({ job });
+    // Get customer and photos
+    const customer = await db.customer.findUnique({ where: { id: job.customerId } });
+    const { data: photos } = await supabase
+      .from('photos')
+      .select('*')
+      .eq('jobId', id);
+
+    return NextResponse.json({ 
+      job: {
+        ...job,
+        customer,
+        photos: photos || [],
+      }
+    });
   } catch (error) {
     console.error('Update job error:', error);
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
@@ -121,13 +151,9 @@ export async function DELETE(
     }
 
     // Delete photos first
-    await db.photo.deleteMany({
-      where: { jobId: id },
-    });
+    await db.photo.deleteMany({ where: { jobId: id } });
 
-    await db.job.delete({
-      where: { id },
-    });
+    await db.job.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
   } catch (error) {

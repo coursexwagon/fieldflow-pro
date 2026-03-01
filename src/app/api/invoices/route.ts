@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
 
-    const where: any = { userId: user.id };
+    const where: Record<string, unknown> = { userId: user.id };
     
     if (status) {
       where.status = status;
@@ -23,17 +23,34 @@ export async function GET(request: NextRequest) {
 
     const invoices = await db.invoice.findMany({
       where,
-      include: {
-        customer: true,
-        items: true,
-        job: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      include: { customer: true },
     });
+    
+    // Sort by createdAt desc
+    invoices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    return NextResponse.json({ invoices });
+    // Get items for each invoice
+    const invoicesWithItems = await Promise.all(
+      invoices.map(async (invoice) => {
+        const { data: items } = await db.invoice.create({ 
+          data: {} 
+        }).catch(() => ({ data: null }));
+        
+        // Fetch items using supabase directly
+        const { supabase } = await import('@/lib/db');
+        const { data: invoiceItems } = await supabase
+          .from('invoice_items')
+          .select('*')
+          .eq('invoiceId', invoice.id);
+        
+        return {
+          ...invoice,
+          items: invoiceItems || [],
+        };
+      })
+    );
+
+    return NextResponse.json({ invoices: invoicesWithItems });
   } catch (error) {
     console.error('Get invoices error:', error);
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
@@ -75,10 +92,11 @@ export async function POST(request: NextRequest) {
     const invoiceNumber = `INV-${nanoid(8).toUpperCase()}`;
 
     // Calculate total
-    const total = items.reduce((sum: number, item: any) => {
+    const total = items.reduce((sum: number, item: { quantity: number; unitPrice: number }) => {
       return sum + (item.quantity * item.unitPrice);
     }, 0);
 
+    // Create invoice
     const invoice = await db.invoice.create({
       data: {
         invoiceNumber,
@@ -89,22 +107,27 @@ export async function POST(request: NextRequest) {
         notes: notes || null,
         dueDate: dueDate ? new Date(dueDate) : null,
         status: 'DRAFT',
-        items: {
-          create: items.map((item: any) => ({
-            description: item.description,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            total: item.quantity * item.unitPrice,
-          })),
-        },
-      },
-      include: {
-        customer: true,
-        items: true,
       },
     });
 
-    return NextResponse.json({ invoice });
+    // Create invoice items
+    const invoiceItems = await db.invoiceItem.createMany({
+      data: items.map((item: { description: string; quantity: number; unitPrice: number }) => ({
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total: item.quantity * item.unitPrice,
+        invoiceId: invoice.id,
+      })),
+    });
+
+    return NextResponse.json({ 
+      invoice: {
+        ...invoice,
+        customer,
+        items: invoiceItems,
+      }
+    });
   } catch (error) {
     console.error('Create invoice error:', error);
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });

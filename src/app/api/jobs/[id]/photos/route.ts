@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { uploadImage, deleteImage } from '@/lib/cloudinary';
+import { supabase } from '@/lib/db';
 
 // POST /api/jobs/[id]/photos - Add a photo to a job
 export async function POST(
@@ -75,29 +76,29 @@ export async function DELETE(
     // Check if job belongs to user
     const job = await db.job.findFirst({
       where: { id, userId: user.id },
-      include: {
-        photos: {
-          where: { id: photoId },
-        },
-      },
     });
 
     if (!job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    const photo = job.photos[0];
+    // Get the photo
+    const { data: photos } = await supabase
+      .from('photos')
+      .select('*')
+      .eq('id', photoId)
+      .eq('jobId', id);
+
+    const photo = photos?.[0];
     if (!photo) {
       return NextResponse.json({ error: 'Photo not found' }, { status: 404 });
     }
 
     // Delete from Cloudinary
-    await deleteImage(photo.publicId);
+    await deleteImage(photo.publicId as string);
 
     // Delete from database
-    await db.photo.delete({
-      where: { id: photoId },
-    });
+    await db.photo.delete({ where: { id: photoId } });
 
     return NextResponse.json({ success: true });
   } catch (error) {

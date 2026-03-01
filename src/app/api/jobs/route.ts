@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { supabase } from '@/lib/db';
 
 // GET /api/jobs - Get all jobs for current user
 export async function GET(request: NextRequest) {
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const customerId = searchParams.get('customerId');
 
-    const where: any = { userId: user.id };
+    const where: Record<string, unknown> = { userId: user.id };
     
     if (status) {
       where.status = status;
@@ -27,16 +28,29 @@ export async function GET(request: NextRequest) {
 
     const jobs = await db.job.findMany({
       where,
-      include: {
-        customer: true,
-        photos: true,
-      },
-      orderBy: {
-        scheduledAt: 'asc',
-      },
+      include: { customer: true },
     });
 
-    return NextResponse.json({ jobs });
+    // Sort by scheduledAt asc
+    jobs.sort((a, b) => {
+      if (!a.scheduledAt && !b.scheduledAt) return 0;
+      if (!a.scheduledAt) return 1;
+      if (!b.scheduledAt) return -1;
+      return new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime();
+    });
+
+    // Get photos for each job
+    const jobsWithPhotos = await Promise.all(
+      jobs.map(async (job) => {
+        const { data: photos } = await supabase
+          .from('photos')
+          .select('*')
+          .eq('jobId', job.id);
+        return { ...job, photos: photos || [] };
+      })
+    );
+
+    return NextResponse.json({ jobs: jobsWithPhotos });
   } catch (error) {
     console.error('Get jobs error:', error);
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
@@ -85,12 +99,14 @@ export async function POST(request: NextRequest) {
         price: price ? parseFloat(price) : null,
         status: 'SCHEDULED',
       },
-      include: {
-        customer: true,
-      },
     });
 
-    return NextResponse.json({ job });
+    return NextResponse.json({ 
+      job: {
+        ...job,
+        customer,
+      }
+    });
   } catch (error) {
     console.error('Create job error:', error);
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
