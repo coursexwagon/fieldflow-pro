@@ -2,311 +2,341 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useSession } from 'next-auth/react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Calendar,
-  DollarSign,
   Clock,
   MapPin,
   Plus,
-  FileText,
-  Users,
-  Check,
+  ChevronRight,
   Loader2,
-  TrendingUp,
-  Zap,
-  ArrowRight,
-  Sparkles,
-  Briefcase,
+  Wrench,
+  Coffee,
+  Truck,
 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { useDashboard } from '@/hooks/useApi';
-import { DashboardTutorial } from '@/components/tutorial/TutorialOverlay';
 
-const quickActions = [
-  { name: 'New Job', icon: Plus, href: '/app/jobs/new', color: 'bg-orange-500/20 text-orange-400' },
-  { name: 'Invoice', icon: FileText, href: '/app/invoices/new', color: 'bg-blue-500/20 text-blue-400' },
-  { name: 'Customer', icon: Users, href: '/app/customers/new', color: 'bg-green-500/20 text-green-400' },
-  { name: 'Schedule', icon: Calendar, href: '/app/schedule', color: 'bg-purple-500/20 text-purple-400' },
-];
-
-function getGreeting() {
+// Time-based suggestions
+function getTimeContext() {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 18) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 6) return { greeting: 'Early start', icon: Coffee };
+  if (hour < 9) return { greeting: 'Morning run', icon: Truck };
+  if (hour < 12) return { greeting: 'Mid-morning', icon: Wrench };
+  if (hour < 14) return { greeting: 'Midday', icon: Clock };
+  if (hour < 17) return { greeting: 'Afternoon push', icon: Wrench };
+  if (hour < 20) return { greeting: 'Evening wrap', icon: Clock };
+  return { greeting: 'Late shift', icon: Coffee };
 }
 
-// Animation variants
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0 },
-};
+// Format time as simple HH:MM
+function formatTime(date: string | Date | null): string {
+  if (!date) return '--:--';
+  const d = new Date(date);
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
 
 export default function DashboardPage() {
   const { data: session } = useSession();
   const { data, isLoading, error } = useDashboard();
-  const [showTutorial, setShowTutorial] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
 
-  const userName = session?.user?.name?.split(' ')[0] || 'there';
+  const timeContext = getTimeContext();
+  const TimeIcon = timeContext.icon;
 
   useEffect(() => {
-    const hasSeenTutorial = localStorage.getItem('fieldflow_tutorial_seen');
-    if (!hasSeenTutorial) {
-      setShowTutorial(true);
+    const seen = localStorage.getItem('fieldflow_seen');
+    if (!seen) {
+      setShowWelcome(true);
+      localStorage.setItem('fieldflow_seen', 'true');
     }
   }, []);
 
   if (isLoading) {
     return (
-      <div className="p-4 flex items-center justify-center min-h-[60vh]">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-        >
-          <Loader2 className="w-8 h-8 text-orange-400" />
-        </motion.div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+            className="w-8 h-8 border-2 border-[#ffb800] border-t-transparent mx-auto mb-3"
+          />
+          <p className="text-[#666] text-sm font-mono">Loading your day...</p>
+        </div>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="p-4 text-center">
-        <p className="text-red-400">Failed to load dashboard</p>
-        <Button
-          variant="primary"
-          size="sm"
-          className="mt-4"
+      <div className="p-6 text-center">
+        <div className="w-12 h-12 bg-[#ff4444]/10 border border-[#ff4444]/30 mx-auto mb-4 flex items-center justify-center">
+          <span className="text-[#ff4444]">!</span>
+        </div>
+        <p className="text-[#888] mb-4">Something went wrong loading your day.</p>
+        <button 
           onClick={() => window.location.reload()}
+          className="text-[#ffb800] text-sm font-medium"
         >
-          Retry
-        </Button>
+          Try again
+        </button>
       </div>
     );
   }
 
   const { stats, recentJobs, upcomingJobs } = data;
-  const today = new Date();
-  const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  const userName = session?.user?.name?.split(' ')[0] || 'there';
+
+  // Build a timeline from jobs
+  const timeline: Array<{ time: string; label: string; type: 'system' | 'job'; status?: string; id?: string; customer?: string }> = [
+    { time: '6:00 AM', label: 'Load truck', type: 'system' },
+    ...((recentJobs || []).slice(0, 3).map((job: any) => ({
+      time: formatTime(job.scheduledAt),
+      label: job.title,
+      customer: job.customer?.name,
+      id: job.id,
+      type: 'job' as const,
+      status: job.status,
+    }))),
+  ];
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="show"
-      className="p-4 space-y-6"
-    >
-      {/* Header */}
-      <motion.div variants={itemVariants} className="space-y-1">
-        <p className="text-zinc-500 text-sm">{getGreeting()}</p>
-        <h1 className="text-2xl font-bold text-white">{userName}</h1>
-        <p className="text-zinc-500 text-sm">{dateStr}</p>
-      </motion.div>
-
-      {/* Stats Cards */}
-      <motion.div variants={itemVariants} className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-        <Card className="flex-shrink-0 w-32 p-4 bg-gradient-to-br from-orange-500/20 to-orange-500/5 border-orange-500/20">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-orange-500/20 mb-3">
-            <Calendar className="w-5 h-5 text-orange-400" />
-          </div>
-          <p className="text-2xl font-bold text-white">{stats.todaysJobs}</p>
-          <p className="text-xs text-zinc-400">jobs today</p>
-          <p className="text-xs text-orange-400 mt-1">{stats.completedJobsToday} done</p>
-        </Card>
-
-        <Card className="flex-shrink-0 w-32 p-4 bg-gradient-to-br from-green-500/20 to-green-500/5 border-green-500/20">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-green-500/20 mb-3">
-            <DollarSign className="w-5 h-5 text-green-400" />
-          </div>
-          <p className="text-2xl font-bold text-white">${stats.totalRevenue?.toLocaleString() || 0}</p>
-          <p className="text-xs text-zinc-400">earned</p>
-          <p className="text-xs text-green-400 mt-1">total</p>
-        </Card>
-
-        <Card className="flex-shrink-0 w-32 p-4 bg-gradient-to-br from-blue-500/20 to-blue-500/5 border-blue-500/20">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-500/20 mb-3">
-            <Users className="w-5 h-5 text-blue-400" />
-          </div>
-          <p className="text-2xl font-bold text-white">{stats.totalCustomers}</p>
-          <p className="text-xs text-zinc-400">customers</p>
-          <p className="text-xs text-blue-400 mt-1">total</p>
-        </Card>
-      </motion.div>
-
-      {/* Quick Actions */}
-      <motion.div variants={itemVariants}>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-white">Quick Actions</h2>
+    <div className="p-4 space-y-6">
+      {/* Header - Simple, time-based */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between"
+      >
+        <div>
+          <p className="text-[#888] text-sm font-mono">{timeContext.greeting}</p>
+          <h1 className="font-display text-2xl font-bold">{userName}</h1>
         </div>
-        <div className="grid grid-cols-4 gap-3">
-          {quickActions.map((action, i) => {
-            const Icon = action.icon;
-            return (
+        <div className="flex items-center gap-2 text-[#888]">
+          <TimeIcon className="w-4 h-4" />
+          <span className="text-sm font-mono">
+            {new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+          </span>
+        </div>
+      </motion.div>
+
+      {/* Today's Run - Money-focused, goal-oriented */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-[#2d2d2d] border border-[#404040] p-4"
+      >
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[#888] text-xs font-mono">TODAY'S RUN</p>
+          <span className="text-[#888] text-xs font-mono">{stats.todaysJobs} jobs</span>
+        </div>
+        
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="font-display text-3xl font-bold tabular-nums">
+              ${stats.totalRevenue?.toLocaleString() || 0}
+            </p>
+            <p className="text-[#666] text-xs mt-1">total earned</p>
+          </div>
+          
+          {/* Progress bar toward a goal */}
+          <div className="text-right">
+            <div className="w-24 h-2 bg-[#404040] mb-1">
               <motion.div
-                key={action.name}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <Link
-                  href={action.href}
-                  className="flex flex-col items-center gap-2 p-4 bg-[#141416] border border-[#27272A] rounded-2xl hover:border-[#3F3F46] transition-all hover:scale-105"
-                >
-                  <div className={`w-12 h-12 rounded-xl ${action.color} flex items-center justify-center`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs text-zinc-400">{action.name}</span>
-                </Link>
-              </motion.div>
-            );
-          })}
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min((stats.totalRevenue || 0) / 10, 100)}%` }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                className="h-full bg-[#ffb800]"
+              />
+            </div>
+            <p className="text-[#666] text-xs font-mono">$1000 goal</p>
+          </div>
         </div>
       </motion.div>
 
-      {/* Next Job */}
-      <motion.div variants={itemVariants}>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-white">Up Next</h2>
-        </div>
-        {upcomingJobs ? (
-          <Card className="p-4 border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-transparent relative overflow-hidden">
-            {/* Decorative element */}
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/20 rounded-full blur-2xl" />
-
-            <div className="relative">
-              <div className="flex items-center justify-between mb-3">
-                <Badge variant="progress" className="text-xs gap-1">
-                  <Zap className="w-3 h-3" />
-                  UP NEXT
-                </Badge>
-                <span className="text-lg font-semibold text-white">
-                  {upcomingJobs.scheduledAt
-                    ? new Date(upcomingJobs.scheduledAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-                    : 'Scheduled'}
-                </span>
-              </div>
-              <h3 className="text-white font-medium text-lg">{upcomingJobs.title}</h3>
-              <p className="text-zinc-400 text-sm mb-1">{upcomingJobs.customer?.name}</p>
-              {upcomingJobs.customer?.address && (
-                <p className="text-zinc-500 text-sm flex items-center gap-1">
-                  <MapPin className="w-3 h-3" />
-                  {upcomingJobs.customer.address}
-                </p>
-              )}
-              <div className="flex gap-2 mt-4">
-                <Link href={`/app/jobs/${upcomingJobs.id}`} className="flex-1">
-                  <Button variant="secondary" size="sm" className="w-full gap-2">
-                    <MapPin className="w-4 h-4" />
-                    Details
-                  </Button>
-                </Link>
-                <Link href={`/app/jobs/${upcomingJobs.id}`} className="flex-1">
-                  <Button variant="primary" size="sm" className="w-full gap-2">
-                    Start Job
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </Card>
-        ) : (
-          <Card className="p-6 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-orange-500/10 flex items-center justify-center">
-              <Calendar className="w-8 h-8 text-orange-400" />
-            </div>
-            <p className="text-zinc-400 mb-4">No upcoming jobs scheduled</p>
-            <Link href="/app/jobs/new">
-              <Button variant="primary" size="sm" className="gap-2">
-                <Plus className="w-4 h-4" />
-                Add Job
-              </Button>
-            </Link>
-          </Card>
-        )}
-      </motion.div>
-
-      {/* Recent Jobs */}
-      <motion.div variants={itemVariants}>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-white">Recent Jobs</h2>
-          <Link href="/app/jobs" className="text-sm text-orange-400 hover:text-orange-300 flex items-center gap-1">
-            View all
-            <ArrowRight className="w-3 h-3" />
+      {/* Timeline - The core of the dashboard */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display font-semibold">Your Day</h2>
+          <Link href="/app/schedule" className="text-[#ffb800] text-xs font-mono flex items-center gap-1">
+            Week view
+            <ChevronRight className="w-3 h-3" />
           </Link>
         </div>
-        <div className="space-y-2">
-          {recentJobs.length > 0 ? recentJobs.map((job: any, i: number) => (
+
+        <div className="space-y-0">
+          {timeline.map((item, i) => (
             <motion.div
-              key={job.id}
-              initial={{ opacity: 0, x: -20 }}
+              key={i}
+              initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
+              transition={{ delay: 0.1 * i }}
+              className="relative pl-6 pb-6 border-l-2 border-[#404040] last:border-l-[#ffb800] last:pb-0"
             >
-              <Link href={`/app/jobs/${job.id}`}>
-                <Card className="p-4 flex items-center gap-3 hover:border-orange-500/30 transition-colors cursor-pointer">
-                  <div className={`flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center ${
-                    job.status === 'COMPLETED' ? 'bg-green-500/20' :
-                    job.status === 'IN_PROGRESS' ? 'bg-orange-500/20' : 'bg-zinc-800'
-                  }`}>
-                    {job.status === 'COMPLETED' ? (
-                      <Check className="w-5 h-5 text-green-400" />
-                    ) : job.status === 'IN_PROGRESS' ? (
-                      <Clock className="w-5 h-5 text-orange-400" />
-                    ) : (
-                      <Calendar className="w-5 h-5 text-zinc-500" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium truncate">{job.title}</p>
-                    <p className="text-zinc-500 text-xs">{job.customer?.name}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-zinc-400">
-                      {job.scheduledAt
-                        ? new Date(job.scheduledAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                        : '-'}
-                    </p>
-                    {job.price && (
-                      <p className="text-sm font-medium text-green-400">${job.price}</p>
-                    )}
-                  </div>
-                </Card>
-              </Link>
-            </motion.div>
-          )) : (
-            <Card className="p-6 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-500/10 flex items-center justify-center">
-                <Briefcase className="w-8 h-8 text-blue-400" />
+              {/* Timeline dot */}
+              <div className={`absolute left-[-5px] top-1 w-2 h-2 ${
+                item.type === 'system' ? 'bg-[#404040]' :
+                item.status === 'COMPLETED' ? 'bg-[#22c55e]' :
+                item.status === 'IN_PROGRESS' ? 'bg-[#ffb800]' :
+                'bg-[#666]'
+              }`} />
+              
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="font-mono text-xs text-[#888]">{item.time}</p>
+                  {item.type === 'job' && item.id ? (
+                    <Link href={`/app/jobs/${item.id}`}>
+                      <p className="font-medium hover:text-[#ffb800] transition-colors">{item.label}</p>
+                      {item.customer && (
+                        <p className="text-sm text-[#666]">{item.customer}</p>
+                      )}
+                    </Link>
+                  ) : (
+                    <p className="text-[#888] text-sm">{item.label}</p>
+                  )}
+                </div>
+                
+                {item.type === 'job' && item.id && (
+                  <Link href={`/app/jobs/${item.id}`} className="text-[#666] hover:text-[#ffb800]">
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
+                )}
               </div>
-              <p className="text-zinc-500 mb-4">No jobs yet</p>
-              <Link href="/app/jobs/new">
-                <Button variant="primary" size="sm" className="gap-2">
-                  <Sparkles className="w-4 h-4" />
-                  Create your first job
-                </Button>
-              </Link>
-            </Card>
-          )}
+            </motion.div>
+          ))}
         </div>
       </motion.div>
 
-      {/* Tutorial */}
-      <DashboardTutorial onComplete={() => setShowTutorial(false)} />
-    </motion.div>
+      {/* Up Next - If there's an upcoming job */}
+      {upcomingJobs && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-[#ffb800]/5 border border-[#ffb800]/30 p-4"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[#ffb800] text-xs font-mono">UP NEXT</span>
+            <span className="font-mono text-sm">{formatTime(upcomingJobs.scheduledAt)}</span>
+          </div>
+          <p className="font-display font-semibold text-lg">{upcomingJobs.title}</p>
+          <p className="text-[#888] text-sm">{upcomingJobs.customer?.name}</p>
+          {upcomingJobs.customer?.address && (
+            <p className="text-[#666] text-xs flex items-center gap-1 mt-1">
+              <MapPin className="w-3 h-3" />
+              {upcomingJobs.customer.address}
+            </p>
+          )}
+          <div className="flex gap-2 mt-4">
+            <Link href={`/app/jobs/${upcomingJobs.id}`} className="flex-1">
+              <button className="w-full border border-[#404040] py-2 text-sm font-medium hover:border-[#ffb800] transition-colors">
+                Details
+              </button>
+            </Link>
+            <Link href={`/app/jobs/${upcomingJobs.id}`} className="flex-1">
+              <button className="w-full bg-[#ffb800] text-[#1a1a1a] py-2 text-sm font-display font-semibold">
+                Start
+              </button>
+            </Link>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Empty State */}
+      {!upcomingJobs && recentJobs?.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-center py-12"
+        >
+          <div className="w-16 h-16 bg-[#2d2d2d] border border-[#404040] mx-auto mb-4 flex items-center justify-center">
+            <Coffee className="w-8 h-8 text-[#666]" />
+          </div>
+          <p className="font-display font-semibold mb-1">Territory is clear</p>
+          <p className="text-[#666] text-sm mb-4">Time for maintenance or coffee?</p>
+          <Link href="/app/jobs/new">
+            <button className="inline-flex items-center gap-2 bg-[#ffb800] text-[#1a1a1a] px-4 py-2 font-display font-semibold text-sm">
+              <Plus className="w-4 h-4" />
+              Add a job
+            </button>
+          </Link>
+        </motion.div>
+      )}
+
+      {/* Recent Jobs List - Compact */}
+      {recentJobs && recentJobs.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display font-semibold">Recent</h2>
+            <Link href="/app/jobs" className="text-[#888] text-xs font-mono">
+              View all
+            </Link>
+          </div>
+          
+          <div className="space-y-1">
+            {recentJobs.slice(0, 5).map((job: any) => (
+              <Link
+                key={job.id}
+                href={`/app/jobs/${job.id}`}
+                className="flex items-center gap-3 p-3 bg-[#2d2d2d] border border-[#404040] hover:border-[#505050] transition-colors"
+              >
+                <div className={`w-2 h-2 ${
+                  job.status === 'COMPLETED' ? 'bg-[#22c55e]' :
+                  job.status === 'IN_PROGRESS' ? 'bg-[#ffb800]' :
+                  'bg-[#666]'
+                }`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm truncate">{job.title}</p>
+                  <p className="text-xs text-[#666]">{job.customer?.name}</p>
+                </div>
+                {job.price && (
+                  <p className="font-mono text-sm text-[#ffb800]">${job.price}</p>
+                )}
+              </Link>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Welcome Modal for first-time users */}
+      {showWelcome && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 bg-[#1a1a1a]/95 flex items-center justify-center p-6"
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="max-w-sm w-full text-center"
+          >
+            <div className="w-16 h-16 bg-[#ffb800] mx-auto mb-6 flex items-center justify-center">
+              <Wrench className="w-8 h-8 text-[#1a1a1a]" />
+            </div>
+            <h2 className="font-display text-2xl font-bold mb-2">Your truck is running.</h2>
+            <p className="text-[#888] mb-6">
+              This is your day view. Jobs, money, and your timeline—all in one place.
+            </p>
+            <button
+              onClick={() => setShowWelcome(false)}
+              className="bg-[#ffb800] text-[#1a1a1a] px-8 py-3 font-display font-semibold"
+            >
+              Let&apos;s go
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </div>
   );
 }

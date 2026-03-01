@@ -4,10 +4,8 @@ import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { Mail, Lock, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Logo } from '@/components/shared/Logo';
+import { motion } from 'framer-motion';
+import { Wrench, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 
 function LoginForm() {
   const router = useRouter();
@@ -32,10 +30,9 @@ function LoginForm() {
       });
 
       if (result?.error) {
-        setError('Invalid email or password');
+        setError('Wrong email or password');
         setIsLoading(false);
       } else {
-        // Success - redirect to callback URL
         window.location.href = callbackUrl;
       }
     } catch (err) {
@@ -46,112 +43,133 @@ function LoginForm() {
   };
 
   return (
-    <div className="lg:col-span-2 bg-[#141416] flex flex-col justify-center items-center p-8">
-      <div className="w-full max-w-sm">
-        <Logo size="md" className="mb-8" />
-        <h1 className="text-2xl font-bold text-white mb-2">Welcome back</h1>
-        <p className="text-zinc-500 mb-8">Sign in to your account</p>
+    <div className="min-h-screen bg-[#1a1a1a] flex flex-col justify-center items-center p-6 relative overflow-hidden">
+      {/* Background texture */}
+      <div className="absolute inset-0 opacity-[0.02]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`
+        }}
+      />
 
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 mb-6">
-            <p className="text-red-400 text-sm">{error}</p>
+      {/* Diagonal accent */}
+      <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-bl from-[#ffb800]/5 to-transparent pointer-events-none" />
+
+      {/* Content */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative z-10 w-full max-w-sm"
+      >
+        {/* Logo/Brand */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <div className="w-10 h-10 bg-[#ffb800] flex items-center justify-center">
+            <Wrench className="w-6 h-6 text-[#1a1a1a]" />
           </div>
-        )}
+          <span className="font-display text-xl font-bold">
+            Field<span className="text-[#ffb800]">Flow</span>
+          </span>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm text-zinc-400 mb-2">Email</label>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="border border-[#ff4444]/30 bg-[#ff4444]/5 px-4 py-3"
+            >
+              <p className="text-[#ff4444] text-sm">{error}</p>
+            </motion.div>
+          )}
+
+          {/* Email Field */}
+          <div className="space-y-2">
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-              <Input 
-                type="email" 
-                placeholder="you@example.com" 
-                className="pl-10" 
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#666]" />
+              <input
+                type="email"
+                placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="w-full bg-[#2d2d2d] border border-[#404040] pl-12 pr-4 py-3 text-[#f5f5f5] placeholder-[#666] focus:border-[#ffb800] focus:outline-none transition-colors"
               />
             </div>
           </div>
-          
-          <div>
-            <label className="block text-sm text-zinc-400 mb-2">Password</label>
+
+          {/* Password Field */}
+          <div className="space-y-2">
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-              <Input 
-                type="password" 
-                placeholder="••••••••" 
-                className="pl-10" 
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#666]" />
+              <input
+                type="password"
+                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className="w-full bg-[#2d2d2d] border border-[#404040] pl-12 pr-4 py-3 text-[#f5f5f5] placeholder-[#666] focus:border-[#ffb800] focus:outline-none transition-colors"
               />
             </div>
           </div>
 
-          <Button type="submit" variant="primary" className="w-full" disabled={isLoading}>
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sign in'}
-          </Button>
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-[#ffb800] text-[#1a1a1a] py-3 font-display font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-[#ffb800]/20 transition-all disabled:opacity-50"
+          >
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                Start your shift
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
         </form>
 
-        <p className="text-center text-zinc-500 text-sm mt-6">
-          Don&apos;t have an account?{' '}
-          <Link href="/signup" className="text-orange-400 hover:text-orange-300">
-            Sign up
+        {/* Sign Up Link */}
+        <p className="text-center text-[#666] text-sm mt-8">
+          New here?{' '}
+          <Link href="/signup" className="text-[#ffb800] hover:underline">
+            Create account
           </Link>
         </p>
-      </div>
+
+        {/* Back to landing */}
+        <p className="text-center mt-6">
+          <Link href="/" className="text-[#666] text-xs font-mono hover:text-[#888]">
+            ← Back to home
+          </Link>
+        </p>
+      </motion.div>
+
+      {/* Tagline at bottom */}
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        className="absolute bottom-8 text-[#404040] text-xs font-mono"
+      >
+        Built for contractors who hate paperwork
+      </motion.p>
     </div>
   );
 }
 
 function LoginLoading() {
   return (
-    <div className="lg:col-span-2 bg-[#141416] flex flex-col justify-center items-center p-8">
-      <div className="w-full max-w-sm flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 text-orange-400 animate-spin" />
-      </div>
+    <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center">
+      <Loader2 className="w-6 h-6 animate-spin text-[#ffb800]" />
     </div>
   );
 }
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen grid lg:grid-cols-5">
-      <div className="hidden lg:flex lg:col-span-3 bg-[#0A0A0B] flex-col justify-center items-center p-12 relative">
-        <div className="absolute inset-0 bg-grid opacity-30" />
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-transparent" />
-        
-        <div className="relative z-10 max-w-lg">
-          <blockquote className="text-2xl lg:text-3xl text-white font-medium leading-relaxed mb-6">
-            &ldquo;FieldFlow cut my admin time in half. I actually get home for dinner now.&rdquo;
-          </blockquote>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
-              <span className="text-white font-medium">MR</span>
-            </div>
-            <div>
-              <p className="text-white font-medium">Mike R.</p>
-              <p className="text-zinc-500 text-sm">HVAC Contractor</p>
-            </div>
-          </div>
-          
-          <div className="flex gap-8 mt-12 pt-8 border-t border-[#27272A]">
-            <div>
-              <p className="text-3xl font-bold text-white">2,000+</p>
-              <p className="text-zinc-500 text-sm">contractors</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-white">500K+</p>
-              <p className="text-zinc-500 text-sm">jobs completed</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <Suspense fallback={<LoginLoading />}>
-        <LoginForm />
-      </Suspense>
-    </div>
+    <Suspense fallback={<LoginLoading />}>
+      <LoginForm />
+    </Suspense>
   );
 }

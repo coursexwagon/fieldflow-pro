@@ -1,267 +1,262 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Calendar, List, MapPin, Loader2, AlertCircle } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Plus, 
+  Clock, 
+  MapPin,
+  Sun,
+  Cloud,
+  Loader2,
+} from 'lucide-react';
 import { useJobs } from '@/hooks/useApi';
 
-const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// Time slots for the day
+const TIME_SLOTS = [
+  { time: '6:00', label: 'Early' },
+  { time: '7:00', label: '' },
+  { time: '8:00', label: 'Morning' },
+  { time: '9:00', label: '' },
+  { time: '10:00', label: '' },
+  { time: '11:00', label: '' },
+  { time: '12:00', label: 'Midday' },
+  { time: '13:00', label: '' },
+  { time: '14:00', label: 'Afternoon' },
+  { time: '15:00', label: '' },
+  { time: '16:00', label: '' },
+  { time: '17:00', label: 'Evening' },
+  { time: '18:00', label: '' },
+];
+
+// Get week dates
+function getWeekDates(offset: number = 0) {
+  const today = new Date();
+  const currentDay = today.getDay();
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - currentDay + 1 + offset * 7); // Monday
+  
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(startOfWeek);
+    date.setDate(startOfWeek.getDate() + i);
+    days.push({
+      date,
+      dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
+      dayNum: date.getDate(),
+      isToday: date.toDateString() === today.toDateString(),
+    });
+  }
+  return days;
+}
 
 export default function SchedulePage() {
-  const router = useRouter();
-  const [view, setView] = useState<'calendar' | 'list'>('calendar');
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [selectedDay, setSelectedDay] = useState(0); // 0 = today's index in week
   const { data, isLoading, error } = useJobs();
+
   const jobs = data?.jobs || [];
+  const weekDays = getWeekDates(weekOffset);
+  const activeDay = weekDays[selectedDay];
 
-  // Generate calendar days
-  const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-  const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-  const startPadding = firstDay.getDay();
-  const totalDays = lastDay.getDate();
-
-  const getJobsForDay = (day: number) => {
-    const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  // Get jobs for the selected day
+  const dayJobs = useMemo(() => {
+    if (!activeDay) return [];
     return jobs.filter((job: any) => {
       if (!job.scheduledAt) return false;
       const jobDate = new Date(job.scheduledAt);
-      const jobDateStr = `${jobDate.getFullYear()}-${String(jobDate.getMonth() + 1).padStart(2, '0')}-${String(jobDate.getDate()).padStart(2, '0')}`;
-      return jobDateStr === dateStr;
-    });
-  };
+      return jobDate.toDateString() === activeDay.date.toDateString();
+    }).sort((a: any, b: any) => 
+      new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+    );
+  }, [jobs, activeDay]);
 
-  const formatStatus = (status: string) => {
-    return status.replace('_', ' ').charAt(0).toUpperCase() + status.replace('_', ' ').slice(1).toLowerCase();
-  };
-
-  const getBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'SCHEDULED': return 'scheduled';
-      case 'IN_PROGRESS': return 'progress';
-      case 'COMPLETED': return 'completed';
-      default: return 'default';
-    }
-  };
-
-  // Get today's date for highlighting
-  const today = new Date();
-  const isToday = (day: number) => {
-    return today.getDate() === day && 
-           today.getMonth() === currentMonth.getMonth() && 
-           today.getFullYear() === currentMonth.getFullYear();
+  // Calculate drive times between jobs
+  const getDriveTime = (index: number) => {
+    if (index === 0) return null;
+    // Simulated drive time (in real app, would use maps API)
+    const driveTimes = ['12 min', '8 min', '15 min', '5 min', '20 min'];
+    return driveTimes[index % driveTimes.length];
   };
 
   if (isLoading) {
     return (
-      <div className="p-4 flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-orange-400 animate-spin" />
-      </div>
-    );
-  }
-
-  // Handle auth error - redirect to login
-  if (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to load schedule';
-    
-    // Check if it's an auth error
-    if (errorMessage.includes('Unauthorized') || errorMessage.includes('Not authenticated')) {
-      router.push('/login');
-      return null;
-    }
-    
-    return (
-      <div className="p-4 text-center min-h-[60vh] flex flex-col items-center justify-center">
-        <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
-        <p className="text-red-400 mb-4">{errorMessage}</p>
-        <Button variant="primary" size="sm" onClick={() => window.location.reload()}>
-          Retry
-        </Button>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-6 h-6 animate-spin text-[#ffb800]" />
       </div>
     );
   }
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-white">Schedule</h1>
-        <div className="flex bg-[#141416] rounded-lg p-1">
+    <div className="h-[calc(100vh-7rem)] flex flex-col">
+      {/* Week Navigation */}
+      <div className="p-4 border-b border-[#404040]">
+        <div className="flex items-center justify-between mb-4">
           <button
-            onClick={() => setView('calendar')}
-            className={cn(
-              'px-3 py-1.5 rounded-md text-sm transition-colors',
-              view === 'calendar' ? 'bg-[#27272A] text-white' : 'text-zinc-500'
-            )}
+            onClick={() => setWeekOffset(weekOffset - 1)}
+            className="p-2 text-[#666] hover:text-[#f5f5f5]"
           >
-            <Calendar className="w-4 h-4" />
+            <ChevronLeft className="w-5 h-5" />
           </button>
+          <h2 className="font-mono text-sm text-[#888]">
+            {weekOffset === 0 ? 'This Week' : weekOffset === -1 ? 'Last Week' : weekOffset === 1 ? 'Next Week' : `${weekOffset} weeks`}
+          </h2>
           <button
-            onClick={() => setView('list')}
-            className={cn(
-              'px-3 py-1.5 rounded-md text-sm transition-colors',
-              view === 'list' ? 'bg-[#27272A] text-white' : 'text-zinc-500'
-            )}
+            onClick={() => setWeekOffset(weekOffset + 1)}
+            className="p-2 text-[#666] hover:text-[#f5f5f5]"
           >
-            <List className="w-4 h-4" />
+            <ChevronRight className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Week Days - Horizontal */}
+        <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide">
+          {weekDays.map((day, i) => (
+            <button
+              key={i}
+              onClick={() => setSelectedDay(i)}
+              className={`flex-shrink-0 flex flex-col items-center py-2 px-3 transition-colors ${
+                selectedDay === i 
+                  ? 'bg-[#ffb800] text-[#1a1a1a]' 
+                  : day.isToday 
+                    ? 'bg-[#ffb800]/10 text-[#ffb800] border border-[#ffb800]/30'
+                    : 'text-[#888] hover:text-[#f5f5f5]'
+              }`}
+            >
+              <span className="text-xs font-mono">{day.dayName}</span>
+              <span className="font-display font-bold text-lg">{day.dayNum}</span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {view === 'calendar' ? (
-        <>
-          {/* Month Navigation */}
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
-              className="p-2 text-zinc-400 hover:text-white"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <h2 className="text-lg font-semibold text-white">
-              {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-            </h2>
-            <button
-              onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
-              className="p-2 text-zinc-400 hover:text-white"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+      {/* Day View */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Day Header */}
+        <div className="p-4 border-b border-[#404040] flex items-center justify-between">
+          <div>
+            <p className="font-mono text-xs text-[#888]">
+              {activeDay?.date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+            </p>
+            {activeDay?.isToday && (
+              <p className="text-[#ffb800] text-xs font-mono mt-1">Today</p>
+            )}
           </div>
+          <div className="flex items-center gap-2 text-[#666]">
+            <Sun className="w-4 h-4" />
+            <span className="text-xs font-mono">72°F</span>
+          </div>
+        </div>
 
-          {/* Calendar Grid */}
-          <Card className="p-3">
-            {/* Day Headers */}
-            <div className="grid grid-cols-7 gap-1 mb-2">
-              {days.map((day) => (
-                <div key={day} className="text-center text-xs text-zinc-500 py-2">
-                  {day}
+        {/* Time Slots */}
+        <div className="relative">
+          {TIME_SLOTS.map((slot, i) => {
+            // Find any job at this time
+            const slotJob = dayJobs.find((job: any) => {
+              if (!job.scheduledAt) return false;
+              const jobHour = new Date(job.scheduledAt).getHours();
+              return jobHour === parseInt(slot.time.split(':')[0]);
+            });
+
+            return (
+              <div
+                key={slot.time}
+                className="flex border-b border-[#404040]/50 min-h-[48px]"
+              >
+                {/* Time Label */}
+                <div className="w-16 flex-shrink-0 p-2 text-right">
+                  <span className="text-xs font-mono text-[#666]">{slot.time}</span>
+                  {slot.label && (
+                    <p className="text-[10px] text-[#444]">{slot.label}</p>
+                  )}
                 </div>
-              ))}
+
+                {/* Slot Content */}
+                <div className="flex-1 border-l border-[#404040]/50 p-1">
+                  {slotJob ? (
+                    <Link href={`/app/jobs/${slotJob.id}`}>
+                      <motion.div
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="h-full p-2 bg-[#ffb800]/10 border-l-2 border-[#ffb800] hover:bg-[#ffb800]/20 transition-colors cursor-pointer"
+                      >
+                        <p className="text-sm font-medium truncate">{slotJob.title}</p>
+                        <p className="text-xs text-[#888]">{slotJob.customer?.name}</p>
+                      </motion.div>
+                    </Link>
+                  ) : (
+                    <button className="w-full h-full flex items-center justify-center text-[#404040] hover:text-[#666] hover:bg-[#2d2d2d] transition-colors">
+                      <Plus className="w-4 h-4 opacity-0 hover:opacity-100" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Empty State */}
+        {dayJobs.length === 0 && (
+          <div className="absolute inset-0 top-24 flex items-center justify-center pointer-events-none">
+            <div className="text-center p-6 bg-[#1a1a1a]/80 backdrop-blur pointer-events-auto">
+              <p className="font-display font-semibold mb-1">Your week is yours</p>
+              <p className="text-[#666] text-sm mb-4">Guard it well.</p>
+              <Link href="/app/jobs/new">
+                <button className="inline-flex items-center gap-2 bg-[#ffb800] text-[#1a1a1a] px-4 py-2 font-display font-semibold text-sm pointer-events-auto">
+                  <Plus className="w-4 h-4" />
+                  Schedule a job
+                </button>
+              </Link>
             </div>
+          </div>
+        )}
 
-            {/* Days */}
-            <div className="grid grid-cols-7 gap-1">
-              {/* Padding for start of month */}
-              {Array.from({ length: startPadding }).map((_, i) => (
-                <div key={`pad-${i}`} className="aspect-square" />
-              ))}
-
-              {/* Actual days */}
-              {Array.from({ length: totalDays }).map((_, i) => {
-                const day = i + 1;
-                const dayJobs = getJobsForDay(day);
-                const todayClass = isToday(day);
-
+        {/* Jobs Summary */}
+        {dayJobs.length > 0 && (
+          <div className="p-4 border-t border-[#404040]">
+            <p className="font-mono text-xs text-[#888] mb-2">
+              {dayJobs.length} job{dayJobs.length !== 1 ? 's' : ''} today
+            </p>
+            <div className="space-y-2">
+              {dayJobs.map((job: any, i: number) => {
+                const driveTime = getDriveTime(i);
                 return (
-                  <button
-                    key={day}
-                    className={cn(
-                      'aspect-square rounded-lg flex flex-col items-center justify-center text-sm relative',
-                      todayClass ? 'bg-orange-500/20 text-orange-400' : 'text-zinc-400 hover:bg-[#27272A]'
-                    )}
-                  >
-                    <span>{day}</span>
-                    {dayJobs.length > 0 && (
-                      <div className="flex gap-0.5 mt-1">
-                        {dayJobs.slice(0, 3).map((_: any, idx: number) => (
-                          <div key={idx} className="w-1 h-1 rounded-full bg-orange-400" />
-                        ))}
+                  <React.Fragment key={job.id}>
+                    {driveTime && (
+                      <div className="flex items-center gap-2 py-1 text-[#666] text-xs font-mono">
+                        <div className="w-16 text-right">↓</div>
+                        <div className="flex-1 flex items-center gap-2 border-l border-dashed border-[#404040] pl-2">
+                          <MapPin className="w-3 h-3" />
+                          {driveTime} drive
+                        </div>
                       </div>
                     )}
-                  </button>
+                    <Link href={`/app/jobs/${job.id}`}>
+                      <div className="flex items-center gap-2 p-2 bg-[#2d2d2d] border border-[#404040] hover:border-[#505050] transition-colors">
+                        <div className="w-16 text-right">
+                          <span className="text-xs font-mono text-[#ffb800]">
+                            {new Date(job.scheduledAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <div className="flex-1 border-l border-[#404040] pl-3">
+                          <p className="text-sm font-medium">{job.title}</p>
+                          <p className="text-xs text-[#666]">{job.customer?.name}</p>
+                        </div>
+                        {job.price && (
+                          <p className="font-mono text-sm text-[#ffb800]">${job.price}</p>
+                        )}
+                      </div>
+                    </Link>
+                  </React.Fragment>
                 );
               })}
             </div>
-          </Card>
-
-          {/* Today's Jobs */}
-          <div>
-            <h3 className="text-sm font-medium text-zinc-400 mb-2">
-              {today.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-            </h3>
-            <div className="space-y-2">
-              {getJobsForDay(today.getDate()).length > 0 ? (
-                getJobsForDay(today.getDate()).map((job: any) => (
-                  <Link key={job.id} href={`/app/jobs/${job.id}`}>
-                    <Card className="p-3 flex items-center gap-3 hover:border-[#3F3F46] transition-colors cursor-pointer">
-                      <div className="flex-1">
-                        <p className="text-white text-sm font-medium">{job.title}</p>
-                        <p className="text-zinc-500 text-xs">{job.customer?.name}</p>
-                      </div>
-                      <span className="text-zinc-400 text-sm">
-                        {job.scheduledAt 
-                          ? new Date(job.scheduledAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-                          : '-'}
-                      </span>
-                    </Card>
-                  </Link>
-                ))
-              ) : (
-                <Card className="p-6 text-center">
-                  <p className="text-zinc-500 mb-3">No jobs scheduled for today</p>
-                  <Link href="/app/jobs/new">
-                    <Button variant="primary" size="sm">
-                      Schedule a Job
-                    </Button>
-                  </Link>
-                </Card>
-              )}
-            </div>
           </div>
-        </>
-      ) : (
-        /* List View */
-        <div className="space-y-4">
-          {jobs.filter((job: any) => job.scheduledAt).length > 0 ? (
-            jobs
-              .filter((job: any) => job.scheduledAt)
-              .sort((a: any, b: any) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
-              .slice(0, 10)
-              .map((job: any) => (
-                <Link key={job.id} href={`/app/jobs/${job.id}`}>
-                  <Card className="p-3 flex items-center gap-3 hover:border-[#3F3F46] transition-colors cursor-pointer">
-                    <div className="w-10 h-10 rounded-lg bg-[#1C1C1F] flex items-center justify-center">
-                      <Calendar className="w-5 h-5 text-orange-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-medium">{job.title}</p>
-                      <p className="text-zinc-500 text-xs flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {job.customer?.name}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-zinc-400">
-                        {job.scheduledAt 
-                          ? new Date(job.scheduledAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                          : '-'}
-                      </p>
-                      <Badge variant={getBadgeVariant(job.status) as any} className="text-xs">
-                        {formatStatus(job.status)}
-                      </Badge>
-                    </div>
-                  </Card>
-                </Link>
-              ))
-          ) : (
-            <Card className="p-8 text-center">
-              <Calendar className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-              <p className="text-zinc-500 mb-4">No scheduled jobs</p>
-              <Link href="/app/jobs/new">
-                <Button variant="primary" size="sm">
-                  Schedule your first job
-                </Button>
-              </Link>
-            </Card>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
