@@ -55,15 +55,15 @@ export default function NewJobPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0B] text-white pb-24">
+    <div className="min-h-screen bg-[#1a1a1a] text-white pb-24">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-[#0A0A0B]/90 backdrop-blur-md border-b border-[#27272A]">
+      <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-[#1a1a1a]/90 backdrop-blur-md border-b border-[#333]">
         <div className="h-full px-4 flex items-center justify-between">
-          <Link href="/app/jobs" className="flex items-center gap-2 text-zinc-400 hover:text-white">
+          <Link href="/app/jobs" className="flex items-center gap-2 text-zinc-400 hover:text-[#00c2ff] transition-colors">
             <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm">Cancel</span>
+            <span className="text-sm font-mono">Cancel</span>
           </Link>
-          <h1 className="text-sm font-medium text-white">New Job</h1>
+          <h1 className="text-sm font-bold tracking-wide text-white">NEW JOB</h1>
           <div className="w-16" />
         </div>
       </header>
@@ -72,34 +72,37 @@ export default function NewJobPage() {
       <main className="pt-16 p-4 space-y-4">
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
-            <p className="text-red-400 text-sm">{error}</p>
+            <p className="text-red-400 text-sm font-mono">{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Card className="p-4 space-y-4">
+          <Card className="p-4 space-y-4 bg-[#222] border-[#333]">
+            <h2 className="text-xs font-mono text-zinc-500 uppercase tracking-wider">// Job Details</h2>
+            
             <div>
-              <label className="block text-sm text-zinc-400 mb-2">Job Title *</label>
+              <label className="block text-xs font-mono text-zinc-400 mb-2 uppercase tracking-wider">Title *</label>
               <Input
                 name="title"
                 placeholder="e.g., HVAC Repair, Furnace Installation"
                 value={formData.title}
                 onChange={handleChange}
                 required
+                className="bg-[#1a1a1a] border-[#333] focus:border-[#00c2ff] focus:ring-1 focus:ring-[#00c2ff]"
               />
             </div>
 
             <div>
-              <label className="block text-sm text-zinc-400 mb-2">Customer *</label>
+              <label className="block text-xs font-mono text-zinc-400 mb-2 uppercase tracking-wider">Customer *</label>
               {customersLoading ? (
                 <div className="flex items-center justify-center py-3">
-                  <Loader2 className="w-5 h-5 text-zinc-400 animate-spin" />
+                  <Loader2 className="w-5 h-5 text-[#00c2ff] animate-spin" />
                 </div>
               ) : customers.length === 0 ? (
                 <div className="text-center py-3">
-                  <p className="text-zinc-500 text-sm mb-2">No customers yet</p>
+                  <p className="text-zinc-500 text-sm font-mono mb-2">No customers yet</p>
                   <Link href="/app/customers/new">
-                    <Button variant="secondary" size="sm">Add Customer</Button>
+                    <Button variant="secondary" size="sm" className="border-[#333] hover:border-[#00c2ff]">Add Customer</Button>
                   </Link>
                 </div>
               ) : (
@@ -107,7 +110,7 @@ export default function NewJobPage() {
                   name="customerId"
                   value={formData.customerId}
                   onChange={handleChange}
-                  className="w-full bg-[#1C1C1F] border border-[#27272A] rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:border-orange-500 focus:outline-none"
+                  className="w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-3 text-white appearance-none cursor-pointer focus:border-[#00c2ff] focus:outline-none focus:ring-1 focus:ring-[#00c2ff]"
                   required
                 >
                   <option value="">Select customer</option>
@@ -121,37 +124,38 @@ export default function NewJobPage() {
             </div>
 
             <div>
-              <label className="block text-sm text-zinc-400 mb-2">Description</label>
+              <label className="block text-xs font-mono text-zinc-400 mb-2 uppercase tracking-wider">Description</label>
               <textarea
                 name="description"
                 placeholder="Job details..."
                 value={formData.description}
                 onChange={handleChange}
                 rows={3}
-                className="w-full bg-[#1C1C1F] border border-[#27272A] rounded-lg px-4 py-3 text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none resize-none"
+                className="w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-3 text-white placeholder:text-zinc-600 focus:border-[#00c2ff] focus:outline-none focus:ring-1 focus:ring-[#00c2ff] resize-none font-mono text-sm"
               />
             </div>
           </Card>
 
-          <Card className="p-4 space-y-4">
+          <Card className="p-4 space-y-4 bg-[#222] border-[#333]">
             <div className="flex items-center gap-2 text-zinc-400 mb-2">
-              <Calendar className="w-4 h-4" />
-              <span className="text-sm font-medium">Schedule</span>
+              <Calendar className="w-4 h-4 text-[#00c2ff]" />
+              <span className="text-xs font-mono uppercase tracking-wider">// Schedule</span>
             </div>
 
             <div>
-              <label className="block text-sm text-zinc-400 mb-2">Date & Time</label>
+              <label className="block text-xs font-mono text-zinc-400 mb-2 uppercase tracking-wider">Date & Time</label>
               <Input
                 type="datetime-local"
                 name="scheduledAt"
                 value={formData.scheduledAt}
                 onChange={handleChange}
+                className="bg-[#1a1a1a] border-[#333] focus:border-[#00c2ff] focus:ring-1 focus:ring-[#00c2ff]"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm text-zinc-400 mb-2">
+                <label className="block text-xs font-mono text-zinc-400 mb-2 uppercase tracking-wider">
                   <Clock className="w-3 h-3 inline mr-1" />
                   Duration (min)
                 </label>
@@ -161,10 +165,11 @@ export default function NewJobPage() {
                   placeholder="60"
                   value={formData.duration}
                   onChange={handleChange}
+                  className="bg-[#1a1a1a] border-[#333] focus:border-[#00c2ff] focus:ring-1 focus:ring-[#00c2ff]"
                 />
               </div>
               <div>
-                <label className="block text-sm text-zinc-400 mb-2">
+                <label className="block text-xs font-mono text-zinc-400 mb-2 uppercase tracking-wider">
                   <DollarSign className="w-3 h-3 inline mr-1" />
                   Price
                 </label>
@@ -175,23 +180,23 @@ export default function NewJobPage() {
                   placeholder="0.00"
                   value={formData.price}
                   onChange={handleChange}
+                  className="bg-[#1a1a1a] border-[#333] focus:border-[#00c2ff] focus:ring-1 focus:ring-[#00c2ff]"
                 />
               </div>
             </div>
           </Card>
 
           {/* Submit Button */}
-          <div className="fixed bottom-16 left-0 right-0 p-4 bg-[#0A0A0B] border-t border-[#27272A]">
+          <div className="fixed bottom-16 left-0 right-0 p-4 bg-[#1a1a1a] border-t border-[#333]">
             <Button
               type="submit"
-              variant="primary"
-              className="w-full"
+              className="w-full bg-gradient-to-r from-[#00c2ff] to-[#0099cc] hover:from-[#00d4ff] hover:to-[#00aadd] text-black font-bold"
               disabled={createJob.isPending || !formData.title || !formData.customerId}
             >
               {createJob.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                'Create Job'
+                'CREATE JOB'
               )}
             </Button>
           </div>

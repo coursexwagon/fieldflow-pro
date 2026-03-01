@@ -19,7 +19,11 @@
   --color-surface: #2d2d2d;
   --color-surface-light: #3d3d3d;
   
-  /* Accent - ONE color: Electric Amber for money/action */
+  /* Accent - ONE color: Cyan for action/tech */
+  --color-cyan: #00c2ff;
+  --color-cyan-dim: #0099cc;
+  
+  /* Legacy amber support */
   --color-amber: #ffb800;
   --color-amber-dim: #cc9500;
   

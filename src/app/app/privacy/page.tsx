@@ -2,167 +2,215 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Shield, Key, Smartphone, Eye, EyeOff, Check } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { 
+  ChevronLeft, 
+  Shield, 
+  Key, 
+  Smartphone, 
+  Trash2, 
+  AlertTriangle,
+  Eye,
+  Lock,
+  LogOut,
+  Loader2,
+} from 'lucide-react';
 
 export default function PrivacyPage() {
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [passwordData, setPasswordData] = useState({
-    current: '',
-    new: '',
-    confirm: '',
-  });
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const { data: session } = useSession();
+  const router = useRouter();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleLogoutAll = async () => {
+    // Sign out from current session
+    await signOut({ redirect: false });
+    router.push('/');
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    
+    // In production, this would call an API to delete the user
+    // For now, just sign out
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    await signOut({ redirect: false });
+    router.push('/');
+  };
+
+  const settings = [
+    {
+      icon: Lock,
+      title: 'Password',
+      description: 'Last changed 30 days ago',
+      action: 'Change',
+      href: '#change-password',
+    },
+    {
+      icon: Smartphone,
+      title: 'Two-Factor Auth',
+      description: 'Not enabled',
+      action: 'Enable',
+      href: '#2fa',
+    },
+    {
+      icon: Eye,
+      title: 'Data & Privacy',
+      description: 'Manage your data',
+      action: 'View',
+      href: '#data',
+    },
+  ];
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-[#0A0A0B] text-white"
+      className="min-h-screen bg-[#1a1a1a] text-[#f5f5f5]"
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-[#0A0A0B]/90 backdrop-blur-md border-b border-[#27272A]">
-        <div className="h-14 px-4 flex items-center gap-4">
-          <Link href="/app/settings" className="p-2 -ml-2 text-zinc-400 hover:text-white">
+      <div className="sticky top-0 z-10 bg-[#1a1a1a]/95 backdrop-blur border-b border-[#333]">
+        <div className="h-14 px-4 flex items-center justify-between">
+          <Link href="/app/more" className="p-2 -ml-2 text-[#888] hover:text-[#00c2ff] transition-colors">
             <ChevronLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-lg font-semibold">Privacy & Security</h1>
+          <h1 className="font-mono text-sm tracking-wider">// SECURITY</h1>
+          <div className="w-9" />
         </div>
       </div>
 
-      <div className="p-4 space-y-6">
-        {/* Change Password */}
+      <div className="p-4 lg:p-6 space-y-6 max-w-lg mx-auto">
+        {/* Security Settings */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          className="bg-[#222] border border-[#333] p-5 space-y-0"
         >
-          <h3 className="text-sm font-medium text-zinc-400 mb-3 flex items-center gap-2">
-            <Key className="w-4 h-4" />
-            Change Password
-          </h3>
-          <Card className="p-4 space-y-4">
-            <div className="relative">
-              <label className="text-sm text-zinc-400 block mb-2">Current Password</label>
-              <div className="relative">
-                <Input
-                  type={showCurrentPassword ? 'text' : 'password'}
-                  value={passwordData.current}
-                  onChange={(e) => setPasswordData({ ...passwordData, current: e.target.value })}
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400"
-                >
-                  {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          <p className="text-xs font-mono text-[#666] tracking-wider mb-4">// ACCOUNT SECURITY</p>
+          
+          {settings.map((item, i) => {
+            const Icon = item.icon;
+            const isLast = i === settings.length - 1;
+            return (
+              <div
+                key={item.title}
+                className={`flex items-center justify-between py-3 ${!isLast ? 'border-b border-[#333]' : ''}`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className="w-5 h-5 text-[#888]" />
+                  <div>
+                    <p className="text-sm font-medium">{item.title}</p>
+                    <p className="text-xs text-[#666]">{item.description}</p>
+                  </div>
+                </div>
+                <button className="text-xs font-mono text-[#00c2ff] hover:underline">
+                  {item.action}
                 </button>
               </div>
-            </div>
-            <div className="relative">
-              <label className="text-sm text-zinc-400 block mb-2">New Password</label>
-              <div className="relative">
-                <Input
-                  type={showNewPassword ? 'text' : 'password'}
-                  value={passwordData.new}
-                  onChange={(e) => setPasswordData({ ...passwordData, new: e.target.value })}
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400"
-                >
-                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-            <div>
-              <label className="text-sm text-zinc-400 block mb-2">Confirm New Password</label>
-              <Input
-                type="password"
-                value={passwordData.confirm}
-                onChange={(e) => setPasswordData({ ...passwordData, confirm: e.target.value })}
-                placeholder="••••••••"
-              />
-            </div>
-            <Button variant="primary" className="w-full">
-              Update Password
-            </Button>
-          </Card>
+            );
+          })}
         </motion.div>
 
-        {/* Two-Factor Auth */}
+        {/* Session */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
+          className="bg-[#222] border border-[#333] p-5"
         >
-          <h3 className="text-sm font-medium text-zinc-400 mb-3 flex items-center gap-2">
-            <Smartphone className="w-4 h-4" />
-            Two-Factor Authentication
-          </h3>
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
+          <p className="text-xs font-mono text-[#666] tracking-wider mb-4">// SESSION</p>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <LogOut className="w-5 h-5 text-[#888]" />
               <div>
-                <p className="text-white font-medium">Authenticator App</p>
-                <p className="text-zinc-500 text-sm">Add an extra layer of security</p>
+                <p className="text-sm font-medium">Log Out All Devices</p>
+                <p className="text-xs text-[#666]">End all active sessions</p>
               </div>
-              <button
-                onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
-                className={`relative w-12 h-7 rounded-full transition-colors ${
-                  twoFactorEnabled ? 'bg-green-500' : 'bg-zinc-700'
-                }`}
-              >
-                <motion.div
-                  animate={{ x: twoFactorEnabled ? 22 : 2 }}
-                  className="absolute top-1 w-5 h-5 bg-white rounded-full shadow"
-                />
-              </button>
             </div>
-            {twoFactorEnabled && (
-              <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-400" />
-                <span className="text-sm text-green-400">Two-factor authentication is enabled</span>
-              </div>
-            )}
-          </Card>
+            <button 
+              onClick={handleLogoutAll}
+              className="text-xs font-mono text-[#ff8844] hover:underline"
+            >
+              LOG OUT
+            </button>
+          </div>
         </motion.div>
 
-        {/* Security Tips */}
+        {/* Danger Zone */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
+          className="bg-[#ff4444]/5 border border-[#ff4444]/30 p-5"
         >
-          <h3 className="text-sm font-medium text-zinc-400 mb-3 flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            Security Tips
-          </h3>
-          <Card className="p-4 space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                <Check className="w-3 h-3 text-green-400" />
+          <div className="flex items-center gap-2 mb-4">
+            <AlertTriangle className="w-5 h-5 text-[#ff4444]" />
+            <p className="text-xs font-mono text-[#ff4444] tracking-wider">// DANGER ZONE</p>
+          </div>
+          
+          {!showDeleteConfirm ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Trash2 className="w-5 h-5 text-[#ff4444]" />
+                <div>
+                  <p className="text-sm font-medium">Delete Account</p>
+                  <p className="text-xs text-[#888]">Permanently remove all data</p>
+                </div>
               </div>
-              <p className="text-zinc-400 text-sm">Use a strong, unique password</p>
+              <button 
+                onClick={() => setShowDeleteConfirm(true)}
+                className="text-xs font-mono text-[#ff4444] hover:underline"
+              >
+                DELETE
+              </button>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                <Check className="w-3 h-3 text-green-400" />
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-4"
+            >
+              <p className="text-sm text-[#f5f5f5]">
+                Are you sure? This will permanently delete your account and all associated data. This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 py-3 border border-[#444] text-sm font-mono hover:border-[#666] transition-colors"
+                >
+                  CANCEL
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={isDeleting}
+                  className="flex-1 py-3 bg-[#ff4444] text-white text-sm font-mono hover:bg-[#ff5555] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      DELETING...
+                    </>
+                  ) : (
+                    'DELETE ACCOUNT'
+                  )}
+                </button>
               </div>
-              <p className="text-zinc-400 text-sm">Enable two-factor authentication</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-zinc-700 flex items-center justify-center flex-shrink-0">
-                <Check className="w-3 h-3 text-zinc-400" />
-              </div>
-              <p className="text-zinc-400 text-sm">Never share your login credentials</p>
-            </div>
-          </Card>
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* Info */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="text-center text-[#666] text-xs font-mono space-y-1"
+        >
+          <p>Your data is encrypted at rest and in transit.</p>
+          <p>We never sell your information to third parties.</p>
         </motion.div>
       </div>
     </motion.div>

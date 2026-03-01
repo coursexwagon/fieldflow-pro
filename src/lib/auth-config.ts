@@ -1,4 +1,4 @@
-import { NextAuthOptions } from 'next-auth';
+import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
 import { db } from '@/lib/db';
@@ -79,6 +79,9 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60,
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || 'fieldflow-dev-secret-key-change-in-production',
   debug: process.env.NODE_ENV === 'development',
 };
+
+// Export auth function for NextAuth v4
+export const { auth, handlers, signIn, signOut } = NextAuth(authOptions);

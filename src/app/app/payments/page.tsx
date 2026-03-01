@@ -3,140 +3,296 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ChevronLeft, CreditCard, Plus, Check, Trash2 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { 
+  ChevronLeft, 
+  CreditCard, 
+  Plus, 
+  Check,
+  ExternalLink,
+  Shield,
+  AlertCircle,
+} from 'lucide-react';
 
-const paymentMethods = [
+interface PaymentMethod {
+  id: string;
+  type: 'card' | 'bank';
+  last4: string;
+  brand?: string;
+  bankName?: string;
+  isDefault: boolean;
+}
+
+// Mock payment methods - in production these would come from Stripe
+const mockPaymentMethods: PaymentMethod[] = [
   {
     id: '1',
     type: 'card',
-    brand: 'Visa',
     last4: '4242',
-    expiry: '12/25',
+    brand: 'Visa',
     isDefault: true,
-  },
-  {
-    id: '2',
-    type: 'card',
-    brand: 'Mastercard',
-    last4: '5555',
-    expiry: '08/26',
-    isDefault: false,
   },
 ];
 
 export default function PaymentsPage() {
-  const [cards, setCards] = useState(paymentMethods);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(mockPaymentMethods);
   const [showAddCard, setShowAddCard] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
 
-  const setDefault = (id: string) => {
-    setCards(prev => prev.map(card => ({
-      ...card,
-      isDefault: card.id === id,
-    })));
+  const handleSetDefault = (id: string) => {
+    setPaymentMethods(prev => 
+      prev.map(method => ({
+        ...method,
+        isDefault: method.id === id,
+      }))
+    );
   };
 
-  const removeCard = (id: string) => {
-    setCards(prev => prev.filter(card => card.id !== id));
+  const handleRemoveCard = (id: string) => {
+    setPaymentMethods(prev => prev.filter(method => method.id !== id));
+  };
+
+  const handleAddCard = async () => {
+    setIsAdding(true);
+    
+    // Simulate adding a card
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const newCard: PaymentMethod = {
+      id: Date.now().toString(),
+      type: 'card',
+      last4: Math.floor(1000 + Math.random() * 9000).toString(),
+      brand: 'Mastercard',
+      isDefault: paymentMethods.length === 0,
+    };
+    
+    setPaymentMethods(prev => [...prev, newCard]);
+    setShowAddCard(false);
+    setIsAdding(false);
+  };
+
+  const getCardIcon = (brand?: string) => {
+    switch (brand?.toLowerCase()) {
+      case 'visa':
+        return '💳';
+      case 'mastercard':
+        return '💳';
+      case 'amex':
+        return '💳';
+      default:
+        return '💳';
+    }
   };
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-[#0A0A0B] text-white"
+      className="min-h-screen bg-[#1a1a1a] text-[#f5f5f5]"
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-[#0A0A0B]/90 backdrop-blur-md border-b border-[#27272A]">
-        <div className="h-14 px-4 flex items-center gap-4">
-          <Link href="/app/settings" className="p-2 -ml-2 text-zinc-400 hover:text-white">
+      <div className="sticky top-0 z-10 bg-[#1a1a1a]/95 backdrop-blur border-b border-[#333]">
+        <div className="h-14 px-4 flex items-center justify-between">
+          <Link href="/app/more" className="p-2 -ml-2 text-[#888] hover:text-[#00c2ff] transition-colors">
             <ChevronLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-lg font-semibold">Payment Methods</h1>
+          <h1 className="font-mono text-sm tracking-wider">// PAYMENTS</h1>
+          <div className="w-9" />
         </div>
       </div>
 
-      <div className="p-4 space-y-4">
-        <p className="text-zinc-400 text-sm">
-          Manage your payment methods for receiving customer payments.
-        </p>
+      <div className="p-4 lg:p-6 space-y-6 max-w-lg mx-auto">
+        {/* Stripe Connect Status */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-[#00c2ff]/10 border border-[#00c2ff]/30 p-5"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#00c2ff]/20 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-[#00c2ff]" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium">Stripe Connected</p>
+              <p className="text-xs text-[#888]">Accept card payments from customers</p>
+            </div>
+            <button className="text-xs font-mono text-[#00c2ff] flex items-center gap-1 hover:underline">
+              Manage
+              <ExternalLink className="w-3 h-3" />
+            </button>
+          </div>
+        </motion.div>
 
-        {/* Cards List */}
-        {cards.map((card, index) => (
-          <motion.div
-            key={card.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className={`p-4 ${card.isDefault ? 'border-orange-500/30 bg-orange-500/5' : ''}`}>
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-10 rounded-lg bg-gradient-to-br from-zinc-700 to-zinc-800 flex items-center justify-center">
-                  <CreditCard className="w-6 h-6 text-white" />
-                </div>
-                <div className="flex-1">
+        {/* Payment Methods */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-[#222] border border-[#333] p-5 space-y-4"
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-mono text-[#666] tracking-wider">// PAYOUT METHODS</p>
+            <button 
+              onClick={() => setShowAddCard(true)}
+              className="text-xs font-mono text-[#00c2ff] flex items-center gap-1 hover:underline"
+            >
+              <Plus className="w-3 h-3" />
+              ADD
+            </button>
+          </div>
+
+          {paymentMethods.length === 0 ? (
+            <div className="text-center py-8">
+              <CreditCard className="w-12 h-12 text-[#444] mx-auto mb-3" />
+              <p className="text-[#888] text-sm">No payment methods added</p>
+              <p className="text-[#666] text-xs mt-1">Add a card to receive payouts</p>
+              <button
+                onClick={() => setShowAddCard(true)}
+                className="mt-4 bg-[#00c2ff] text-[#1a1a1a] px-6 py-2 font-mono text-sm font-semibold hover:bg-[#00a8e0] transition-colors"
+              >
+                ADD CARD
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {paymentMethods.map((method) => (
+                <div
+                  key={method.id}
+                  className={`flex items-center gap-4 p-4 border ${
+                    method.isDefault ? 'border-[#00c2ff]/50 bg-[#00c2ff]/5' : 'border-[#333]'
+                  }`}
+                >
+                  <div className="text-2xl">{getCardIcon(method.brand)}</div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">
+                        {method.brand} •••• {method.last4}
+                      </p>
+                      {method.isDefault && (
+                        <span className="text-[10px] font-mono text-[#00c2ff] bg-[#00c2ff]/10 px-2 py-0.5">
+                          DEFAULT
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-[#666] mt-1">
+                      {method.type === 'card' ? 'Debit card for payouts' : 'Bank account'}
+                    </p>
+                  </div>
                   <div className="flex items-center gap-2">
-                    <p className="text-white font-medium">{card.brand} •••• {card.last4}</p>
-                    {card.isDefault && (
-                      <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 text-xs rounded-full">
-                        Default
-                      </span>
+                    {!method.isDefault && (
+                      <button
+                        onClick={() => handleSetDefault(method.id)}
+                        className="text-xs font-mono text-[#888] hover:text-[#00c2ff] transition-colors"
+                      >
+                        SET DEFAULT
+                      </button>
                     )}
                   </div>
-                  <p className="text-zinc-500 text-sm">Expires {card.expiry}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  {!card.isDefault && (
-                    <button
-                      onClick={() => setDefault(card.id)}
-                      className="p-2 text-zinc-400 hover:text-orange-400 transition-colors"
-                      title="Set as default"
-                    >
-                      <Check className="w-5 h-5" />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => removeCard(card.id)}
-                    className="p-2 text-zinc-400 hover:text-red-400 transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+              ))}
+            </div>
+          )}
+        </motion.div>
+
+        {/* Add Card Modal */}
+        {showAddCard && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 z-50 bg-[#1a1a1a]/95 flex items-center justify-center p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-[#222] border border-[#333] p-6 w-full max-w-sm"
+            >
+              <h3 className="font-mono text-sm tracking-wider mb-4">// ADD PAYMENT METHOD</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-mono text-[#888] block mb-2 uppercase">Card Number</label>
+                  <input
+                    type="text"
+                    placeholder="4242 4242 4242 4242"
+                    className="w-full h-11 px-4 bg-[#1a1a1a] border border-[#333] text-[#f5f5f5] focus:border-[#00c2ff] focus:outline-none"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-mono text-[#888] block mb-2 uppercase">Expiry</label>
+                    <input
+                      type="text"
+                      placeholder="MM/YY"
+                      className="w-full h-11 px-4 bg-[#1a1a1a] border border-[#333] text-[#f5f5f5] focus:border-[#00c2ff] focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-mono text-[#888] block mb-2 uppercase">CVC</label>
+                    <input
+                      type="text"
+                      placeholder="123"
+                      className="w-full h-11 px-4 bg-[#1a1a1a] border border-[#333] text-[#f5f5f5] focus:border-[#00c2ff] focus:outline-none"
+                    />
+                  </div>
                 </div>
               </div>
-            </Card>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowAddCard(false)}
+                  className="flex-1 py-3 border border-[#444] font-mono text-sm hover:border-[#666] transition-colors"
+                >
+                  CANCEL
+                </button>
+                <button
+                  onClick={handleAddCard}
+                  disabled={isAdding}
+                  className="flex-1 py-3 bg-[#00c2ff] text-[#1a1a1a] font-mono text-sm font-semibold hover:bg-[#00a8e0] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isAdding ? 'ADDING...' : 'ADD CARD'}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 mt-4 text-[#666]">
+                <Shield className="w-4 h-4" />
+                <span className="text-xs">Secured by Stripe</span>
+              </div>
+            </motion.div>
           </motion.div>
-        ))}
+        )}
 
-        {/* Add Card Button */}
-        <Button
-          variant="secondary"
-          className="w-full gap-2 mt-4"
-          onClick={() => setShowAddCard(true)}
+        {/* Info */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-[#2d2d2d] border border-[#404040] p-4 flex gap-3"
         >
-          <Plus className="w-4 h-4" />
-          Add Payment Method
-        </Button>
+          <AlertCircle className="w-5 h-5 text-[#ffb800] flex-shrink-0" />
+          <div className="text-sm text-[#888]">
+            <p className="font-medium text-[#f5f5f5] mb-1">Payout Schedule</p>
+            <p>Funds from customer payments arrive in 2 business days. Weekend/holiday payments arrive the next business day.</p>
+          </div>
+        </motion.div>
 
-        {/* Stripe Connect Info */}
-        <Card className="p-4 mt-6 bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/20">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
-              <svg className="w-6 h-6 text-purple-400" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z"/>
-              </svg>
+        {/* Fees */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-[#222] border border-[#333] p-5"
+        >
+          <p className="text-xs font-mono text-[#666] tracking-wider mb-3">// PROCESSING FEES</p>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-[#888]">Card payments</span>
+              <span className="font-mono">2.9% + 30¢</span>
             </div>
-            <div>
-              <p className="text-white font-medium">Connect with Stripe</p>
-              <p className="text-zinc-400 text-sm mt-1">
-                Accept payments directly from customers. Money hits your account in 2 days.
-              </p>
-              <Button variant="primary" size="sm" className="mt-3">
-                Connect Stripe Account
-              </Button>
+            <div className="flex justify-between">
+              <span className="text-[#888]">ACH transfers</span>
+              <span className="font-mono">0.8% (max $5)</span>
             </div>
           </div>
-        </Card>
+        </motion.div>
       </div>
     </motion.div>
   );
