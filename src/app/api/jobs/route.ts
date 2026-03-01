@@ -26,7 +26,8 @@ export async function GET(request: NextRequest) {
       where.customerId = customerId;
     }
 
-    const jobs = await db.job.findMany({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const jobs: any[] = await db.job.findMany({
       where,
       include: { customer: true },
     });
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
         description: description || null,
         customerId,
         userId: user.id,
-        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+        scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
         duration: duration ? parseInt(duration) : null,
         price: price ? parseFloat(price) : null,
         status: 'SCHEDULED',

@@ -22,15 +22,16 @@ export async function GET(request: NextRequest) {
       where.status = status;
     }
 
-    const invoices = await db.invoice.findMany({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const invoices: any[] = await db.invoice.findMany({
       where,
       include: { customer: true },
     });
     
     // Sort by createdAt desc
     invoices.sort((a, b) => {
-      const aDate = a.createdAt ? new Date(a.createdAt as string).getTime() : 0;
-      const bDate = b.createdAt ? new Date(b.createdAt as string).getTime() : 0;
+      const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return bDate - aDate;
     });
 
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
         const { data: invoiceItems } = await supabase
           .from('invoice_items')
           .select('*')
-          .eq('invoiceId', invoice.id as string);
+          .eq('invoiceId', invoice.id);
         
         return {
           ...invoice,
@@ -104,19 +105,20 @@ export async function POST(request: NextRequest) {
         jobId: jobId || null,
         total,
         notes: notes || null,
-        dueDate: dueDate ? new Date(dueDate) : null,
+        dueDate: dueDate ? new Date(dueDate).toISOString() : null,
         status: 'DRAFT',
       },
     });
 
     // Create invoice items
-    const invoiceItems = await db.invoiceItem.createMany({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const invoiceItems: any[] = await db.invoiceItem.createMany({
       data: items.map((item: { description: string; quantity: number; unitPrice: number }) => ({
         description: item.description,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         total: item.quantity * item.unitPrice,
-        invoiceId: invoice.id as string,
+        invoiceId: invoice.id,
       })),
     });
 

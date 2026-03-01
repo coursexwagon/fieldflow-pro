@@ -17,7 +17,8 @@ export async function GET(
     
     const { id } = await params;
 
-    const job = await db.job.findFirst({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const job: any = await db.job.findFirst({
       where: { id, userId: user.id },
       include: { customer: true },
     });
@@ -33,13 +34,15 @@ export async function GET(
       .eq('jobId', id);
 
     // Get invoice if exists
-    const invoices = await db.invoice.findMany({ 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const invoices: any[] = await db.invoice.findMany({ 
       where: { jobId: id },
       include: { customer: true },
     });
     
     // Get items for each invoice
-    let invoice = invoices[0] || null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let invoice: any = invoices[0] || null;
     if (invoice) {
       const { data: items } = await supabase
         .from('invoice_items')
@@ -91,14 +94,14 @@ export async function PUT(
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
     if (customerId !== undefined) updateData.customerId = customerId;
-    if (scheduledAt !== undefined) updateData.scheduledAt = scheduledAt ? new Date(scheduledAt) : null;
+    if (scheduledAt !== undefined) updateData.scheduledAt = scheduledAt ? new Date(scheduledAt).toISOString() : null;
     if (duration !== undefined) updateData.duration = duration ? parseInt(duration) : null;
     if (price !== undefined) updateData.price = price ? parseFloat(price) : null;
     
     if (status !== undefined) {
       updateData.status = status;
       if (status === 'COMPLETED') {
-        updateData.completedAt = new Date();
+        updateData.completedAt = new Date().toISOString();
       }
     }
 

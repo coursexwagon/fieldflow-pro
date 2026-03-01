@@ -16,9 +16,10 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Missing credentials');
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const user = await db.user.findUnique({
           where: { email: credentials.email },
-        });
+        }) as any;
 
         if (!user) {
           throw new Error('No user found');
@@ -31,12 +32,12 @@ export const authOptions: NextAuthOptions = {
         }
 
         return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          businessName: user.businessName,
-          tradeType: user.tradeType,
-          phone: user.phone,
+          id: user.id as string,
+          email: user.email as string,
+          name: user.name as string,
+          businessName: user.businessName as string | undefined,
+          tradeType: user.tradeType as string | undefined,
+          phone: user.phone as string | undefined,
         };
       },
     }),
@@ -47,9 +48,12 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
-        token.businessName = user.businessName;
-        token.tradeType = user.tradeType;
-        token.phone = user.phone;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        token.businessName = (user as any).businessName;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        token.tradeType = (user as any).tradeType;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        token.phone = (user as any).phone;
       }
       return token;
     },
@@ -59,9 +63,9 @@ export const authOptions: NextAuthOptions = {
           id: token.id as string,
           email: token.email as string,
           name: token.name as string,
-          businessName: token.businessName as string,
-          tradeType: token.tradeType as string,
-          phone: token.phone as string,
+          businessName: token.businessName as string | undefined,
+          tradeType: token.tradeType as string | undefined,
+          phone: token.phone as string | undefined,
         };
       }
       return session;

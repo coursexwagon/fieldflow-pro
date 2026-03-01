@@ -15,14 +15,13 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
 
     const where: Record<string, unknown> = { userId: user.id };
-    
-    // Note: Search functionality would need to be implemented differently with Supabase
-    // For now, we'll fetch all and filter client-side or implement Supabase text search
 
-    const customers = await db.customer.findMany({ where });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const customers: any[] = await db.customer.findMany({ where });
 
     // Get counts for each customer
-    const customersWithCounts: Array<typeof customers[0] & { _count: { jobs: number; invoices: number } }> = await Promise.all(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const customersWithCounts: any[] = await Promise.all(
       customers.map(async (customer) => {
         const jobsCount = await db.job.count({ where: { customerId: customer.id } });
         const invoicesCount = await db.invoice.count({ where: { customerId: customer.id } });
@@ -39,17 +38,17 @@ export async function GET(request: NextRequest) {
     // Filter by search if provided
     const filteredCustomers = search
       ? customersWithCounts.filter((c) =>
-          c.name.toLowerCase().includes(search.toLowerCase()) ||
+          c.name?.toLowerCase().includes(search.toLowerCase()) ||
           c.email?.toLowerCase().includes(search.toLowerCase()) ||
-          c.phone.includes(search) ||
-          c.address.toLowerCase().includes(search.toLowerCase())
+          c.phone?.includes(search) ||
+          c.address?.toLowerCase().includes(search.toLowerCase())
         )
       : customersWithCounts;
 
     // Sort by createdAt desc
     filteredCustomers.sort((a, b) => {
-      const aDate = a.createdAt ? new Date(a.createdAt as string).getTime() : 0;
-      const bDate = b.createdAt ? new Date(b.createdAt as string).getTime() : 0;
+      const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return bDate - aDate;
     });
 
