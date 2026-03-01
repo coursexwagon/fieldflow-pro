@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { nanoid } from 'nanoid';
 
+// Use service role key for server-side operations (bypasses RLS)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gklaggowcdlbkvknwmeg.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbGFnZ293Y2RsYmt2a253bWVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMDgzMjEsImV4cCI6MjA4Nzg4NDMyMX0.ec8PUraCzoRhMxrSQc78QQEDc6rmgIx1UsCqx6M9QSQ';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbGFnZ293Y2RsYmt2a253bWVnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjMwODMyMSwiZXhwIjoyMDg3ODg0MzIxfQ.bVK_5NPdQF2V5_XHxLZxVT6s6d5xDX5pDq6GG2cHHDw';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Server-side client with service role (bypasses RLS)
+export const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRecord = Record<string, any>;
@@ -21,7 +23,7 @@ const transformDates = (data: AnyRecord): AnyRecord => {
 };
 
 // Database client that mimics Prisma API using Supabase
-// Using any types to avoid TypeScript issues with Supabase's complex types
+// Using service role key to bypass RLS for server-side operations
 export const db = {
   user: {
     async create({ data }: { data: AnyRecord }) {
@@ -30,7 +32,10 @@ export const db = {
         .insert({ id: nanoid(), ...data })
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase user.create error:', error);
+        throw error;
+      }
       return transformDates(result);
     },
     async findUnique({ where }: { where: { id?: string; email?: string } }) {
@@ -43,7 +48,10 @@ export const db = {
         return null;
       }
       const { data, error } = await query.single();
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error && error.code !== 'PGRST116') {
+        console.error('Supabase user.findUnique error:', error);
+        throw error;
+      }
       return data ? transformDates(data) : null;
     },
     async findFirst({ where }: { where: AnyRecord }) {
@@ -52,7 +60,10 @@ export const db = {
         query = query.eq(key, value);
       }
       const { data, error } = await query.limit(1).single();
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error && error.code !== 'PGRST116') {
+        console.error('Supabase user.findFirst error:', error);
+        throw error;
+      }
       return data ? transformDates(data) : null;
     },
     async findMany({ where, skip, take }: { where?: AnyRecord; skip?: number; take?: number } = {}) {
@@ -67,7 +78,10 @@ export const db = {
       if (skip) query = query.range(skip, skip + (take || 10) - 1);
       if (take && !skip) query = query.limit(take);
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase user.findMany error:', error);
+        throw error;
+      }
       return (data || []).map(transformDates);
     },
     async update({ where, data }: { where: { id: string }; data: AnyRecord }) {
@@ -77,7 +91,10 @@ export const db = {
         .eq('id', where.id)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase user.update error:', error);
+        throw error;
+      }
       return transformDates(result);
     },
     async delete({ where }: { where: { id: string } }) {
@@ -87,7 +104,10 @@ export const db = {
         .eq('id', where.id)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase user.delete error:', error);
+        throw error;
+      }
       return transformDates(data);
     },
     async count({ where }: { where?: AnyRecord } = {}) {
@@ -100,7 +120,10 @@ export const db = {
         }
       }
       const { count, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase user.count error:', error);
+        throw error;
+      }
       return count || 0;
     },
   },
@@ -112,7 +135,10 @@ export const db = {
         .insert(data)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase customer.create error:', error);
+        throw error;
+      }
       return transformDates(result);
     },
     async findUnique({ where }: { where: { id: string } }) {
@@ -121,7 +147,10 @@ export const db = {
         .select('*')
         .eq('id', where.id)
         .single();
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error && error.code !== 'PGRST116') {
+        console.error('Supabase customer.findUnique error:', error);
+        throw error;
+      }
       return data ? transformDates(data) : null;
     },
     async findFirst({ where, include }: { where: AnyRecord; include?: AnyRecord }) {
@@ -132,7 +161,10 @@ export const db = {
         }
       }
       const { data, error } = await query.limit(1).single();
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error && error.code !== 'PGRST116') {
+        console.error('Supabase customer.findFirst error:', error);
+        throw error;
+      }
       if (!data) return null;
       
       const customer = transformDates(data);
@@ -196,7 +228,10 @@ export const db = {
       if (skip) query = query.range(skip, skip + (take || 10) - 1);
       if (take && !skip) query = query.limit(take);
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase customer.findMany error:', error);
+        throw error;
+      }
       return (data || []).map(transformDates);
     },
     async update({ where, data }: { where: { id: string }; data: AnyRecord }) {
@@ -206,7 +241,10 @@ export const db = {
         .eq('id', where.id)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase customer.update error:', error);
+        throw error;
+      }
       return transformDates(result);
     },
     async delete({ where }: { where: { id: string } }) {
@@ -216,7 +254,10 @@ export const db = {
         .eq('id', where.id)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase customer.delete error:', error);
+        throw error;
+      }
       return transformDates(data);
     },
     async count({ where }: { where?: AnyRecord } = {}) {
@@ -229,7 +270,10 @@ export const db = {
         }
       }
       const { count, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase customer.count error:', error);
+        throw error;
+      }
       return count || 0;
     },
   },
@@ -248,7 +292,10 @@ export const db = {
         .insert(insertData)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase job.create error:', error);
+        throw error;
+      }
       return transformDates(result);
     },
     async findUnique({ where, include }: { where: { id: string }; include?: AnyRecord }) {
@@ -264,7 +311,10 @@ export const db = {
         .select(selectFields)
         .eq('id', where.id)
         .single();
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error && error.code !== 'PGRST116') {
+        console.error('Supabase job.findUnique error:', error);
+        throw error;
+      }
       if (!data) return null;
       
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -292,7 +342,10 @@ export const db = {
         }
       }
       const { data, error } = await query.limit(1).single();
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error && error.code !== 'PGRST116') {
+        console.error('Supabase job.findFirst error:', error);
+        throw error;
+      }
       if (!data) return null;
       
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -323,7 +376,10 @@ export const db = {
       if (skip) query = query.range(skip, skip + (take || 10) - 1);
       if (take && !skip) query = query.limit(take);
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase job.findMany error:', error);
+        throw error;
+      }
       return (data || []).map((item) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const itemAny = item as any;
@@ -348,7 +404,10 @@ export const db = {
         .eq('id', where.id)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase job.update error:', error);
+        throw error;
+      }
       return transformDates(result);
     },
     async delete({ where }: { where: { id: string } }) {
@@ -358,7 +417,10 @@ export const db = {
         .eq('id', where.id)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase job.delete error:', error);
+        throw error;
+      }
       return transformDates(data);
     },
     async count({ where }: { where?: AnyRecord } = {}) {
@@ -371,7 +433,10 @@ export const db = {
         }
       }
       const { count, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase job.count error:', error);
+        throw error;
+      }
       return count || 0;
     },
   },
@@ -383,7 +448,10 @@ export const db = {
         .insert(data)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase photo.create error:', error);
+        throw error;
+      }
       return transformDates(result);
     },
     async findMany({ where }: { where?: AnyRecord } = {}) {
@@ -396,7 +464,10 @@ export const db = {
         }
       }
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase photo.findMany error:', error);
+        throw error;
+      }
       return (data || []).map(transformDates);
     },
     async delete({ where }: { where: { id: string } }) {
@@ -406,7 +477,10 @@ export const db = {
         .eq('id', where.id)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase photo.delete error:', error);
+        throw error;
+      }
       return transformDates(data);
     },
     async deleteMany({ where }: { where: { jobId: string } }) {
@@ -415,7 +489,10 @@ export const db = {
         .delete()
         .eq('jobId', where.jobId)
         .select();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase photo.deleteMany error:', error);
+        throw error;
+      }
       return (data || []).map(transformDates);
     },
   },
@@ -435,7 +512,10 @@ export const db = {
         .insert(insertData)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase invoice.create error:', error);
+        throw error;
+      }
       
       const invoice = transformDates(result);
       
@@ -448,7 +528,10 @@ export const db = {
         const { error: itemsError } = await supabase
           .from('invoice_items')
           .insert(itemsWithInvoiceId);
-        if (itemsError) throw itemsError;
+        if (itemsError) {
+          console.error('Supabase invoice items error:', itemsError);
+          throw itemsError;
+        }
       }
       
       return invoice;
@@ -466,7 +549,10 @@ export const db = {
         .select(selectFields)
         .eq('id', where.id)
         .single();
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error && error.code !== 'PGRST116') {
+        console.error('Supabase invoice.findUnique error:', error);
+        throw error;
+      }
       if (!data) return null;
       
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -494,7 +580,10 @@ export const db = {
         }
       }
       const { data, error } = await query.limit(1).single();
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error && error.code !== 'PGRST116') {
+        console.error('Supabase invoice.findFirst error:', error);
+        throw error;
+      }
       if (!data) return null;
       
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -521,7 +610,10 @@ export const db = {
       if (skip) query = query.range(skip, skip + (take || 10) - 1);
       if (take && !skip) query = query.limit(take);
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase invoice.findMany error:', error);
+        throw error;
+      }
       return (data || []).map((item) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const itemAny = item as any;
@@ -546,7 +638,10 @@ export const db = {
         .eq('id', where.id)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase invoice.update error:', error);
+        throw error;
+      }
       return transformDates(result);
     },
     async delete({ where }: { where: { id: string } }) {
@@ -556,7 +651,10 @@ export const db = {
         .eq('id', where.id)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase invoice.delete error:', error);
+        throw error;
+      }
       return transformDates(data);
     },
     async count({ where }: { where?: AnyRecord } = {}) {
@@ -569,7 +667,10 @@ export const db = {
         }
       }
       const { count, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase invoice.count error:', error);
+        throw error;
+      }
       return count || 0;
     },
     async aggregate({ where, _sum }: { where?: AnyRecord; _sum?: { total?: boolean } }) {
@@ -583,7 +684,10 @@ export const db = {
           }
         }
         const { data, error } = await query;
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase invoice.aggregate error:', error);
+          throw error;
+        }
         const total = (data || []).reduce((sum: number, item: AnyRecord) => sum + (item.total || 0), 0);
         return { _sum: { total } };
       }
@@ -598,7 +702,10 @@ export const db = {
         .insert(data)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase invoiceItem.create error:', error);
+        throw error;
+      }
       return transformDates(result);
     },
     async createMany({ data }: { data: AnyRecord[] }) {
@@ -606,7 +713,10 @@ export const db = {
         .from('invoice_items')
         .insert(data)
         .select();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase invoiceItem.createMany error:', error);
+        throw error;
+      }
       return (result || []).map(transformDates);
     },
     async deleteMany({ where }: { where: { invoiceId: string } }) {
@@ -615,7 +725,10 @@ export const db = {
         .delete()
         .eq('invoiceId', where.invoiceId)
         .select();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase invoiceItem.deleteMany error:', error);
+        throw error;
+      }
       return (data || []).map(transformDates);
     },
   },
