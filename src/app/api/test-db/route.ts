@@ -4,22 +4,22 @@ import { db } from '@/lib/db';
 export async function GET() {
   try {
     // Try to connect and run a simple query
-    const result = await db.$queryRaw`SELECT 1 as test`;
+    const count = await db.user.count();
     
     return NextResponse.json({
       status: 'connected',
-      result,
-      databaseUrl: process.env.DATABASE_URL ? 'set (hidden)' : 'not set',
-      directUrl: process.env.DIRECT_DATABASE_URL ? 'set (hidden)' : 'not set',
+      userCount: count,
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'using default',
+      supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'set' : 'using default',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('DB test error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({
       status: 'error',
-      error: error.message,
-      code: error.code,
-      databaseUrl: process.env.DATABASE_URL ? 'set (hidden)' : 'not set',
-      directUrl: process.env.DIRECT_DATABASE_URL ? 'set (hidden)' : 'not set',
+      error: errorMessage,
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'using default',
+      supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'set' : 'using default',
     }, { status: 500 });
   }
 }
