@@ -90,7 +90,13 @@ export async function POST(request: NextRequest) {
       });
     } catch (createError: any) {
       console.error('User creation error:', createError);
-      
+      console.error('Error details:', JSON.stringify({
+        message: createError?.message,
+        code: createError?.code,
+        details: createError?.details,
+        hint: createError?.hint,
+      }));
+
       // Check for specific Prisma errors
       if (createError.code === 'P2002') {
         return NextResponse.json(
@@ -98,9 +104,13 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      
+
       return NextResponse.json(
-        { error: 'Failed to create user. Please try again.' },
+        {
+          error: 'Failed to create user. Please try again.',
+          details: createError?.message || 'Unknown error',
+          code: createError?.code
+        },
         { status: 500 }
       );
     }
