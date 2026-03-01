@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { nanoid } from 'nanoid';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gklaggowcdlbkvknwmeg.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbGFnZ293Y2RsYmt2a253bWVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMDgzMjEsImV4cCI6MjA4Nzg4NDMyMX0.ec8PUraCzoRhMxrSQc78QQEDc6rmgIx1UsCqx6M9QSQ';
@@ -26,7 +27,7 @@ export const db = {
     async create({ data }: { data: AnyRecord }) {
       const { data: result, error } = await supabase
         .from('users')
-        .insert(data)
+        .insert({ id: nanoid(), ...data })
         .select()
         .single();
       if (error) throw error;
